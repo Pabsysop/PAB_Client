@@ -1,5 +1,5 @@
+import 'package:clubhouse_clone_ui_kit/codepage.dart';
 import 'package:clubhouse_clone_ui_kit/constant.dart';
-import 'package:clubhouse_clone_ui_kit/loginpage.dart';
 import 'package:country_code_picker/country_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -127,20 +127,15 @@ class StartPage extends StatelessWidget {
                 SizedBox(
                   height: 20,
                 ),
-                Text(
-                    "PartyBoard用户拥有独一无二的受保护的元宇宙虚拟身份，通过这个身份建立自己的社交圈层，结实对的人，获取真实可靠的信息。",
-                    style: GoogleFonts.openSans(fontSize: bodyFontSize)),
+                Text(pabDescription, style: GoogleFonts.openSans(fontSize: bodyFontSize)),
                 SizedBox(
                   height: 20,
                 ),
-                Text(
-                    "Board是PAB元宇宙的入口，用户加入Board，使用Board提供的服务和其他个体交流互动，Board的类型涵盖社会生活的各个领域，确保元宇宙的多样性。",
-                    style: GoogleFonts.openSans(fontSize: bodyFontSize)),
+                Text(boardDecription, style: GoogleFonts.openSans(fontSize: bodyFontSize)),
                 SizedBox(
                   height: 20,
                 ),
-                Text("你是一道光",
-                    style: GoogleFonts.openSans(fontSize: bodyFontSize)),
+                Text(slogan, style: GoogleFonts.openSans(fontSize: bodyFontSize)),
               ],
             ),
             Container(
@@ -161,7 +156,7 @@ class StartPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => LoginPage()),
+                          MaterialPageRoute(builder: (context) => CodePage()),
                         );
                       },
                       child: Text('成为PAB元宇宙公民 ->'),

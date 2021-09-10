@@ -7,7 +7,7 @@ packages:
       name: agent_dart
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.1.12"
+    version: "0.1.15"
   archive:
     dependency: transitive
     description:
@@ -191,13 +191,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_web_auth:
-    dependency: transitive
-    description:
-      name: flutter_web_auth
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.3.0"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -378,6 +371,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.2.3"
+  progress_hud:
+    dependency: "direct main"
+    description:
+      name: progress_hud
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.1.0"
   protobuf:
     dependency: transitive
     description:

@@ -1,6 +1,6 @@
 import 'package:agent_dart/agent_dart.dart';
 
-class AgentFactory {
+class NaisAgentFactory {
   late final Principal _canisterId;
   late Identity _identity;
   late HttpAgent _agent;
@@ -11,7 +11,7 @@ class AgentFactory {
 
   CanisterActor get actor => _actor;
 
-  AgentFactory(
+  NaisAgentFactory(
       {required String canisterId,
       required String url,
       required Service idl,
@@ -24,13 +24,13 @@ class AgentFactory {
     _initAgent(url);
     _createActor();
   }
-  factory AgentFactory.create(
+  factory NaisAgentFactory.create(
       {required String canisterId,
       required String url,
       required Service idl,
       Identity? identity,
       bool? debug = true}) {
-    return AgentFactory(
+    return NaisAgentFactory(
         canisterId: canisterId,
         url: url,
         idl: idl,

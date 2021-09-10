@@ -1,13 +1,19 @@
 import 'dart:io';
-import 'package:clubhouse_clone_ui_kit/codepage.dart';
+import 'package:agent_dart/agent/auth.dart';
+import 'package:agent_dart/principal/principal.dart';
+import 'package:clubhouse_clone_ui_kit/ICP/nais.dart';
+import 'package:clubhouse_clone_ui_kit/avatars_page.dart';
 import 'package:clubhouse_clone_ui_kit/constant.dart';
+import 'package:clubhouse_clone_ui_kit/draw_example.dart';
+import 'package:clubhouse_clone_ui_kit/homepage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'profile_page.dart';
+import 'ICP/agent_factory.dart';
 
 class LoginPage extends StatefulWidget {
-  LoginPage({Key? key}) : super(key: key);
+  final Principal lifeid;
+  LoginPage(this.lifeid);
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -15,37 +21,44 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   double size = 256;
-  String? _fileName = "/home/defalut.txt";
   List<PlatformFile>? _paths;
-  String? _directoryPath = "/home";
   String? _extension;
   bool _multiPick = false;
-  FileType _pickingType = FileType.any;
+  FileType _pickingType = FileType.image;
+  late Nais _nais;
+  Identity? _identity;
+  late Principal _myLife;
+  late String _myAvatar = "not nft avatar";
+  
+  @override
+  void initState() {
+    super.initState();
+    _myLife = widget.lifeid;
+  }
 
 void _openFileExplorer() async {
     try {
-      _directoryPath = null;
       _paths = (await FilePicker.platform.pickFiles(
         type: _pickingType,
         allowMultiple: _multiPick,
         onFileLoading: (FilePickerStatus status) => print(status),
-        allowedExtensions: (_extension?.isNotEmpty ?? false)
-            ? _extension?.replaceAll(' ', '').split(',')
-            : null,
+        allowedExtensions: (_extension?.isNotEmpty ?? false) ? _extension?.replaceAll(' ', '').split(',') : null,
       ))?.files;
-      _directoryPath = _paths?.single.path;
-      var fd = File(_directoryPath!);
+      var fd = File(_paths!.single.path!);
       var contents = await fd.readAsBytes();
+      _nais = NaisAgentFactory.create(
+                    canisterId: naisCanisterId,
+                    url: "http://192.168.153.192:8000",
+                    idl: naisIdl,
+                    identity: _identity,
+              ).hook(Nais());
+      _nais.makeAvatarNFT(WasmType.VisaNFT, contents);
     } on PlatformException catch (e) {
       print("Unsupported operation" + e.toString());
     } catch (ex) {
       print(ex);
     }
     if (!mounted) return;
-    setState(() {
-      _fileName =
-          _paths != null ? _paths!.map((e) => e.name).toString() : '...';
-    });
   }
 
   @override
@@ -60,15 +73,7 @@ void _openFileExplorer() async {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                "# 好看的皮囊 #",
-                style: TextStyle(fontSize: headingFontSize),
-              ),
-              Text(
-                _fileName!,
-                style: TextStyle(fontSize: headingFontSize),
-              ),
-              Text(
-                _directoryPath!,
+                "#$_myLife #$_myAvatar",
                 style: TextStyle(fontSize: headingFontSize),
               ),
               Column(
@@ -93,7 +98,7 @@ void _openFileExplorer() async {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => ProfilePage()),
+                            MaterialPageRoute(builder: (context) => AvatarsPage()),
                           );
                         }
                       ),
@@ -102,7 +107,7 @@ void _openFileExplorer() async {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => ProfilePage()),
+                            MaterialPageRoute(builder: (context) => MyDraw()),
                           );
                         }
                       ),
@@ -118,7 +123,7 @@ void _openFileExplorer() async {
                     height: 15,
                   ),
                   Text(
-                    "可以使系统默认头像，可以生成PAB元宇宙头像NFT，也可以导入外部的头像NFT，NFT头像用户更拉风哦！",
+                    avatarDecription,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13.0),
                   )
@@ -136,11 +141,11 @@ void _openFileExplorer() async {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => CodePage()),
+                    MaterialPageRoute(builder: (context) => Homepage()),
                   );
                 },
                 child: Text(
-                  '下一步 ->',
+                  '->',
                   style: TextStyle(fontSize: buttonFontSize),
                 ),
               )

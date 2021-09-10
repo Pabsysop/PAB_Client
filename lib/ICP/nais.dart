@@ -1,43 +1,57 @@
 import 'package:agent_dart/agent_dart.dart';
+import 'agent_factory.dart';
 
-import 'init.dart';
+enum WasmType {
+    PABToken,
+    Board,
+    Life,
+    AvatarNFT,
+    VisaNFT
+} 
+
+final String naisCanisterId = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+final String replicaUrl = "http://192.168.4.192:8000";
 
 class NaisMethod {
   static const apply_citizen = "ApplyCitizenship";
-  static const count = "getValue";
+  static const upload_wasm = "uploadWasm";
 }
 
-final idl = IDL.Service({
-  NaisMethod.count: IDL.Func([], [IDL.Nat], ['query']),
-  NaisMethod.apply_citizen: IDL.Func([], [], []),
+Map<String, Object> wasmArg = {"wasm_type": WasmType.VisaNFT, "wasm_module": []};
+
+final naisIdl = IDL.Service({
+  NaisMethod.apply_citizen: IDL.Func([IDL.Text], [IDL.Opt(IDL.Principal)], ['update']),
+  NaisMethod.upload_wasm: IDL.Func([IDL.Record(wasmArg)], [], ['update']),
 });
 
-class Counter extends ActorHook {
-  Counter();
-  factory Counter.create(CanisterActor _actor) {
-    return Counter()..setActor(_actor);
+class Nais extends ActorHook {
+  Nais();
+  factory Nais.create(CanisterActor _actor) {
+    return Nais()..setActor(_actor);
   }
   setActor(CanisterActor _actor) {
     actor = _actor;
   }
 
-  Future<int> count() async {
+  Future<Principal> applyCitizen(String code) async {
     try {
-      var res = await actor.getFunc(NaisMethod.count)!([]);
+      var res = await actor.getFunc(NaisMethod.apply_citizen)!([code]);
       if (res != null) {
-        return (res as BigInt).toInt();
+        return res as Principal;
       }
-      throw "Cannot get count but $res";
+      throw "apply failed due to $res";
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<void> add() async {
+  Future<void> makeAvatarNFT(WasmType wtype, List<int> executable) async {
     try {
-      await actor.getFunc(NaisMethod.apply_citizen)!([]);
+      wasmArg["wasm_module"] = executable;
+      await actor.getFunc(NaisMethod.upload_wasm)!([wasmArg]);
     } catch (e) {
       rethrow;
     }
   }
+
 }

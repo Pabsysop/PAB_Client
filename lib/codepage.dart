@@ -1,18 +1,24 @@
+import 'package:agent_dart/agent_dart.dart';
+import 'package:clubhouse_clone_ui_kit/ICP/agent_factory.dart';
+import 'package:clubhouse_clone_ui_kit/ICP/nais.dart';
+import 'package:clubhouse_clone_ui_kit/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'ICP/canister_caller.dart';
-import 'homepage.dart';
 import 'constant.dart';
+import 'package:progress_hud/progress_hud.dart';
+
+final TextEditingController myController = TextEditingController();
+var progressHUD = new ProgressHUD(
+      backgroundColor: Colors.black12,
+      color: Colors.white,
+      containerColor: Colors.blue,
+      borderRadius: 5.0,
+      text: 'Loading...',
+);
 
 class CodePage extends StatelessWidget {
   const CodePage({Key? key}) : super(key: key);
-
-  void callIcpBorn(){
-      CanisterCaller caller = CanisterCaller();
-      caller.initCounter();
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,60 +31,45 @@ class CodePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                "输入你的密码",
+                "输入你的邀请码",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: headingFontSize),
+                style: TextStyle(fontSize: bodyFontSize),
+              ),
+              TextField(
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.text,
+                maxLength: 64,
+                controller: myController,
+                style: TextStyle(letterSpacing: 2, fontSize: 15),
+                decoration: InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  border: InputBorder.none,
+                  fillColor: Colors.white,
+                  counterText: "",
+                  filled: true,
+                ),
               ),
               Column(
                 children: [
-                  Container(
-                    child: IntrinsicWidth(
-                      child: TextField(
-                        textAlign: TextAlign.center,
-                        obscureText: true,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 4,
-                        style: TextStyle(letterSpacing: 2, fontSize: 15),
-                        decoration: InputDecoration(
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          hintText: "****",
-                          contentPadding: EdgeInsets.symmetric(horizontal: 100),
-                          border: InputBorder.none,
-                          fillColor: Colors.white,
-                          counterText: "",
-                          filled: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                      ),
-                    ),
-                  ),
                   SizedBox(
                     height: 10,
                   ),
                   Container(
-                    child: IntrinsicWidth(
-                      child: TextField(
-                        textAlign: TextAlign.center,
-                        obscureText: true,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 4,
-                        style: TextStyle(letterSpacing: 2, fontSize: 15),
-                        decoration: InputDecoration(
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          hintText: "confirm",
-                          contentPadding: EdgeInsets.symmetric(horizontal: 100),
-                          border: InputBorder.none,
-                          fillColor: Colors.white,
-                          counterText: "",
-                          filled: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                      ),
-                    ),
+                    child: GridView.count(
+                      crossAxisCount: 4,
+                      shrinkWrap: true,
+                      children: new List<Widget>.generate(16, (index) {
+                        return new GridTile(
+                          child: new Card(
+                            color: Colors.blue.shade200,
+                            child: new Center(
+                              child: new Text('$index'),
+                            )
+                          ),
+                        );
+                      }),
+                    )
                   ),
                 ],
               ),
@@ -91,14 +82,24 @@ class CodePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(32.0)),
                   minimumSize: Size(150, 50), //////// HERE
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  var seed = myController.text.substring(0, 64).toU8a();
+                  var _identity = Ed25519KeyIdentity.generate(seed);
+                  var _nais = NaisAgentFactory.create(
+                                canisterId: naisCanisterId,
+                                url: replicaUrl,
+                                idl: naisIdl,
+                                identity: _identity,
+                          ).hook(Nais());
+                  var lifeId = await _nais.applyCitizen(myController.text);
+
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                        builder: (c) => Scaffold(body: Homepage())),
+                        builder: (c) => Scaffold(body: LoginPage(lifeId))),
                   );
                 },
                 child: Text(
-                  'Gotcha ->',
+                  '->',
                   style: TextStyle(fontSize: buttonFontSize),
                 ),
               )
