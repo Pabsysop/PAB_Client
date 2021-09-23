@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:agent_dart/agent/auth.dart';
+import 'package:agent_dart/agent_dart.dart';
 import 'package:agent_dart/principal/principal.dart';
 import 'package:clubhouse_clone_ui_kit/ICP/nais.dart';
 import 'package:clubhouse_clone_ui_kit/avatars_page.dart';
@@ -9,11 +11,12 @@ import 'package:clubhouse_clone_ui_kit/homepage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pem/pem.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'ICP/agent_factory.dart';
 
 class LoginPage extends StatefulWidget {
-  final Principal lifeid;
-  LoginPage(this.lifeid);
+  LoginPage({Key? key}) : super(key: key);
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -27,13 +30,41 @@ class _LoginPageState extends State<LoginPage> {
   FileType _pickingType = FileType.image;
   late Nais _nais;
   Identity? _identity;
-  late Principal _myLife;
-  late String _myAvatar = "not nft avatar";
+  Principal? _myLife;
+  String _myAvatar = "not nft avatar";
+  bool enableNext = false;
   
+  void getUserEnv() {
+    SharedPreferences.getInstance().then((prefs) {
+      String? lifeId = prefs.getString("lifeCanisterID");
+      if (lifeId != null) {
+        setState(() {
+          _myLife = Principal.fromText(lifeId);
+        });
+      }
+      String? pKey = prefs.getString("pKey");
+      if (pKey != null) {
+        var pkBytes = PemCodec(PemLabel.privateKey).decode(pKey);
+        setState(() {
+          _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
+        });
+      }
+      enableNext = true;
+      return;
+    });
+  }
+
+  void nextPressed(BuildContext context){
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Homepage()),
+    );
+  }
+
   @override
-  void initState() {
+  void initState(){
     super.initState();
-    _myLife = widget.lifeid;
+    getUserEnv();
   }
 
 void _openFileExplorer() async {
@@ -47,12 +78,17 @@ void _openFileExplorer() async {
       var fd = File(_paths!.single.path!);
       var contents = await fd.readAsBytes();
       _nais = NaisAgentFactory.create(
-                    canisterId: naisCanisterId,
-                    url: "http://192.168.153.192:8000",
-                    idl: naisIdl,
-                    identity: _identity,
-              ).hook(Nais());
-      _nais.makeAvatarNFT(WasmType.VisaNFT, contents);
+            canisterId: naisCanisterId,
+            url: replicaUrl,
+            idl: naisIdl,
+            identity: _identity,
+      ).hook(Nais());
+      var avatarId = await _nais.makeAvatarNFT(contents);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString("avatar_nft", avatarId);
+      setState(() {
+        _myAvatar = avatarId;
+      });
     } on PlatformException catch (e) {
       print("Unsupported operation" + e.toString());
     } catch (ex) {
@@ -72,9 +108,18 @@ void _openFileExplorer() async {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                "#$_myLife #$_myAvatar",
-                style: TextStyle(fontSize: headingFontSize),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "#$_myAvatar",
+                    style: TextStyle(fontSize: headingFontSize),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () { }
+                  ),
+                ],
               ),
               Column(
                 children: [
@@ -138,12 +183,7 @@ void _openFileExplorer() async {
                       borderRadius: BorderRadius.circular(32.0)),
                   minimumSize: Size(150, 50), //////// HERE
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Homepage()),
-                  );
-                },
+                onPressed: !enableNext ? null : () => nextPressed(context),
                 child: Text(
                   '->',
                   style: TextStyle(fontSize: buttonFontSize),

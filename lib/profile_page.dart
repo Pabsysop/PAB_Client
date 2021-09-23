@@ -1,32 +1,60 @@
+import 'dart:typed_data';
+
+import 'package:agent_dart/agent_dart.dart';
 import 'package:clubhouse_clone_ui_kit/constant.dart';
 import 'package:clubhouse_clone_ui_kit/followers_page.dart';
 import 'package:clubhouse_clone_ui_kit/following_page.dart';
-import 'package:clubhouse_clone_ui_kit/setting.dart';
 import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pem/pem.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'clubwidget.dart';
 import 'datas/usersdatas.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
+
+  @override
+  _ProfilePage createState() => _ProfilePage();
+}
+
+class _ProfilePage extends State<ProfilePage> {
+  Identity? _identity;
+  Principal? _myLife;
+  String _myAvatar = "not nft avatar";
+
+  void getUserEnv() {
+    SharedPreferences.getInstance().then((prefs) {
+      String? lifeId = prefs.getString("lifeCanisterID");
+      if (lifeId != null) {
+        setState(() {
+          _myLife = Principal.fromText(lifeId);
+        });
+      }
+      String? pKey = prefs.getString("pKey");
+      if (pKey != null) {
+        var pkBytes = PemCodec(PemLabel.privateKey).decode(pKey);
+        setState(() {
+          _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
+        });
+      }
+      return;
+    });
+  }
+
+  @override
+  void initState(){
+    super.initState();
+    getUserEnv();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.login)),
           IconButton(onPressed: () {}, icon: Icon(Icons.share)),
-          IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Setting()),
-                );
-              },
-              icon: Icon(Icons.settings))
         ],
       ),
       body: SingleChildScrollView(
@@ -35,15 +63,23 @@ class ProfilePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ProfileImageWidget(user10.image, 60),
+              ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
+                child: Image.asset(
+                  "assets/images/avatar-3.jpg",
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.fill,
+                ),
+              ),
               SizedBox(
                 height: 15,
               ),
-              Text(user10.name),
+              Text("PAB#1"),
               SizedBox(
                 height: 2,
               ),
-              Text(user10.id),
+              Text(_myLife == null ? "" : _myLife.toString()),
               SizedBox(
                 height: 15,
               ),
@@ -95,79 +131,7 @@ class ProfilePage extends StatelessWidget {
               SizedBox(
                 height: 31,
               ),
-              if (user10.about.isNotEmpty) Text(user10.about),
-              SizedBox(
-                height: 10,
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: EdgeInsets.only(left: 0),
-                    primary: buttonPrimary,
-                    elevation: 0),
-                onPressed: () {},
-                child: Text('Add a bio'),
-              ),
-              SizedBox(
-                height: 0,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                            padding: EdgeInsets.only(left: 0),
-                            primary: buttonPrimary,
-                            elevation: 0),
-                        onPressed: () {},
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FaIcon(
-                              FontAwesomeIcons.twitter,
-                              size: 15,
-                            ),
-                            SizedBox(
-                              width: 2,
-                            ),
-                            Text(user10.twiterId ?? user10.twiterId.toString()),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                            padding: EdgeInsets.only(left: 0),
-                            primary: buttonPrimary,
-                            elevation: 0),
-                        onPressed: () {},
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FaIcon(
-                              FontAwesomeIcons.instagram,
-                              size: 15,
-                            ),
-                            SizedBox(
-                              width: 2,
-                            ),
-                            Text(user10.instaId ?? user10.instaId.toString()),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              Text(no_description_hint),
               SizedBox(
                 height: 20,
               ),
@@ -184,7 +148,7 @@ class ProfilePage extends StatelessWidget {
                         Text("Joined Feb 24, 2021"),
                         RichText(
                           text: TextSpan(
-                            text: 'Nominated by ',
+                            text: 'Invited by ',
                             style: TextStyle(color: Colors.black),
                             children: <TextSpan>[
                               TextSpan(
@@ -204,7 +168,7 @@ class ProfilePage extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Memeber of"),
+                  Text("Member of"),
                   SizedBox(
                     height: 10,
                   ),
@@ -213,8 +177,6 @@ class ProfilePage extends StatelessWidget {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, index) {
-                        // print("club size: " +
-                        //     currentUser.followingClub.length.toString());
                         return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: InkWell(

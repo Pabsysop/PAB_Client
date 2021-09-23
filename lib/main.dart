@@ -1,12 +1,16 @@
 import 'package:clubhouse_clone_ui_kit/codepage.dart';
 import 'package:clubhouse_clone_ui_kit/constant.dart';
+import 'package:clubhouse_clone_ui_kit/homepage.dart';
+import 'package:clubhouse_clone_ui_kit/loginpage.dart';
 import 'package:country_code_picker/country_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -153,11 +157,27 @@ class StartPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(32.0)),
                         minimumSize: Size(100, 40),
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => CodePage()),
-                        );
+                      onPressed: () async {
+                        final SharedPreferences prefs = await SharedPreferences.getInstance();
+                        var lifeId = prefs.getString("lifeCanisterID");
+                        var pKey = prefs.getString("pKey");
+                        var avatar = prefs.getString("avatarNFT");
+                        if (lifeId == null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (c) => Scaffold(body: CodePage())),
+                          );
+                        }else if (avatar == null){
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (c) => Scaffold(body: LoginPage())),
+                          );
+                        }else{
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (c) => Scaffold(body: Homepage())),
+                          );
+                        }
                       },
                       child: Text('成为PAB元宇宙公民 ->'),
                     )

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:agent_dart/agent_dart.dart';
 import 'agent_factory.dart';
 
@@ -10,18 +12,16 @@ enum WasmType {
 } 
 
 final String naisCanisterId = "rrkah-fqaaa-aaaaa-aaaaq-cai";
-final String replicaUrl = "http://192.168.4.192:8000";
+final String replicaUrl = "http://192.168.1.79:8000";
 
 class NaisMethod {
   static const apply_citizen = "ApplyCitizenship";
-  static const upload_wasm = "uploadWasm";
+  static const make_avatar_nft = "RequestAvatarNft";
 }
-
-Map<String, Object> wasmArg = {"wasm_type": WasmType.VisaNFT, "wasm_module": []};
 
 final naisIdl = IDL.Service({
   NaisMethod.apply_citizen: IDL.Func([IDL.Text], [IDL.Opt(IDL.Principal)], ['update']),
-  NaisMethod.upload_wasm: IDL.Func([IDL.Record(wasmArg)], [], ['update']),
+  NaisMethod.make_avatar_nft: IDL.Func([IDL.Record({"image_bytes": IDL.Vec(IDL.Nat8)})], [IDL.Text], ['update']),
 });
 
 class Nais extends ActorHook {
@@ -37,7 +37,7 @@ class Nais extends ActorHook {
     try {
       var res = await actor.getFunc(NaisMethod.apply_citizen)!([code]);
       if (res != null) {
-        return res as Principal;
+        return res[0] as Principal;
       }
       throw "apply failed due to $res";
     } catch (e) {
@@ -45,10 +45,14 @@ class Nais extends ActorHook {
     }
   }
 
-  Future<void> makeAvatarNFT(WasmType wtype, List<int> executable) async {
+  Future<String> makeAvatarNFT(Uint8List imageBytes) async {
     try {
-      wasmArg["wasm_module"] = executable;
-      await actor.getFunc(NaisMethod.upload_wasm)!([wasmArg]);
+      Map<String, List<dynamic>> imageArg = {"image_bytes": imageBytes};
+      var res = await actor.getFunc(NaisMethod.make_avatar_nft)!([imageArg]);
+      if (res != null) {
+        return res[0] as String;
+      }
+      throw "apply failed due to $res";
     } catch (e) {
       rethrow;
     }

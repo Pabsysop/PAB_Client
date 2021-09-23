@@ -1,13 +1,13 @@
+import 'package:agent_dart/agent/auth.dart';
+import 'package:agent_dart/principal/principal.dart';
 import 'package:clubhouse_clone_ui_kit/constant.dart';
 import 'package:clubhouse_clone_ui_kit/conversationroom.dart';
 import 'package:clubhouse_clone_ui_kit/datas/roomdata.dart';
-import 'package:clubhouse_clone_ui_kit/datas/usersdatas.dart';
 import 'package:clubhouse_clone_ui_kit/profile_page.dart';
-import 'package:clubhouse_clone_ui_kit/searchpage.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
 import 'package:clubhouse_clone_ui_kit/widgets/room_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'ICP/nais.dart';
 
 // ignore: must_be_immutable
 class Homepage extends StatefulWidget {
@@ -18,16 +18,36 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  late Nais _nais;
+  Identity? _identity;
+  Principal? _myLife;
+  String _myAvatar = "not nft avatar";
+
+  @override
+  void initState(){
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.search),
+          icon: ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(50 / 2.2)),
+            child: Image.asset(
+              "assets/images/avatar-3.jpg",
+              width: 50,
+              height: 50,
+              fit: BoxFit.fill,
+            ),
+          ),
           onPressed: () {
             Navigator.push(
-                context, MaterialPageRoute(builder: (b) => SearchPage()));
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
+            );
           },
         ),
         actions: [
@@ -43,14 +63,6 @@ class _HomepageState extends State<Homepage> {
             icon: Icon(Icons.notifications),
             onPressed: () {},
           ),
-          IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfilePage()),
-                );
-              },
-              icon: ProfileImageWidget(user10.image, 30)),
         ],
       ),
       body: Stack(

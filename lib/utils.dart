@@ -9,7 +9,7 @@ Future<void> showTipsDialog(BuildContext context, String tips1, String tips2) as
         title: const Text('Partyboard'),
         content: SingleChildScrollView(
           child: ListBody(
-            children: const <Widget>[
+            children: <Widget>[
               Text(tips1),
               Text(tips2),
             ],

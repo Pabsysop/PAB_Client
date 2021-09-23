@@ -17,7 +17,7 @@ var user2 = User(personImage2, "Natasha John",
     about:
         "In publishing and graphic design, Lorem ipsum is a placeholder text commonly",
     followersList: [user7, user9, user3, user4],
-    followingClubList: [club1, club2, club4, club6],
+    followingClubList: [],
     followingList: [user3, user4, user9]);
 var user3 = User(personImage3, "Benjamin",
     id: '@benjamin', instaId: 'benjamin3', twiterId: 'benjamin2');
@@ -39,6 +39,6 @@ var user10 = User(personImage10, "Olivia",
     twiterId: 'olivia7',
     about:
         'I am a wild photographer my interest is taking animals photo i love my professional',
-    followersList: [user1, user2, user3],
-    followingClubList: [club1, club4, club5, club6],
-    followingList: [user1, user2, user4, user7, user9]);
+    followersList: [],
+    followingClubList: [],
+    followingList: [user1]);
