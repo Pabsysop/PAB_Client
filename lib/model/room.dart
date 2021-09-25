@@ -1,4 +1,4 @@
-import 'package:clubhouse_clone_ui_kit/model/user.dart';
+import 'package:partyboard_client/model/user.dart';
 
 class Room {
   final String clubName;

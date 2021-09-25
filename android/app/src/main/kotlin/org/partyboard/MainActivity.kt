@@ -1,4 +1,4 @@
-package com.example.clubhouse_clone_ui_kit
+package org.partyboard
 
 import io.flutter.embedding.android.FlutterActivity
 

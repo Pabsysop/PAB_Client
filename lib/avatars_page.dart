@@ -1,4 +1,4 @@
-import 'package:clubhouse_clone_ui_kit/constant.dart';
+import 'package:partyboard_client/constant.dart';
 import 'package:flutter/material.dart';
 
 class AvatarsPage extends StatelessWidget {
