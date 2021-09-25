@@ -1,10 +1,10 @@
 import 'package:agent_dart/agent/auth.dart';
 import 'package:agent_dart/principal/principal.dart';
-import 'package:clubhouse_clone_ui_kit/constant.dart';
-import 'package:clubhouse_clone_ui_kit/conversationroom.dart';
-import 'package:clubhouse_clone_ui_kit/datas/roomdata.dart';
-import 'package:clubhouse_clone_ui_kit/profile_page.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/room_widget.dart';
+import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/conversationroom.dart';
+import 'package:partyboard_client/datas/roomdata.dart';
+import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/widgets/room_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'ICP/nais.dart';
@@ -83,7 +83,7 @@ class _HomepageState extends State<Homepage> {
                   ...rooms.map((e) => InkWell(
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(
-                            builder: (c) => ConversationRoom(e)));
+                            builder: (c) => ConversationRoom()));
                       },
                       child: RoomWidget(e))),
                 ],

@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:agent_dart/agent_dart.dart';
-import 'package:clubhouse_clone_ui_kit/ICP/agent_factory.dart';
-import 'package:clubhouse_clone_ui_kit/ICP/nais.dart';
-import 'package:clubhouse_clone_ui_kit/loginpage.dart';
+import 'package:partyboard_client/ICP/agent_factory.dart';
+import 'package:partyboard_client/ICP/nais.dart';
+import 'package:partyboard_client/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hud/flutter_hud.dart';

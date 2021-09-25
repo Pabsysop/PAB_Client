@@ -1,6 +1,6 @@
-import 'package:clubhouse_clone_ui_kit/datas/imagesaddress.dart';
-import 'package:clubhouse_clone_ui_kit/datas/usersdatas.dart';
-import 'package:clubhouse_clone_ui_kit/model/club.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
+import 'package:partyboard_client/datas/usersdatas.dart';
+import 'package:partyboard_client/model/club.dart';
 
 List<Club> followingClubs = [];
 

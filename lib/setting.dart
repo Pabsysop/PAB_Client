@@ -1,6 +1,6 @@
-import 'package:clubhouse_clone_ui_kit/constant.dart';
-import 'package:clubhouse_clone_ui_kit/interestpage.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/switch_button.dart';
+import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/interestpage.dart';
+import 'package:partyboard_client/widgets/switch_button.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 

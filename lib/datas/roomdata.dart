@@ -1,7 +1,7 @@
-import 'package:clubhouse_clone_ui_kit/datas/clubdatas.dart';
-import 'package:clubhouse_clone_ui_kit/datas/usersdatas.dart';
-import 'package:clubhouse_clone_ui_kit/model/room.dart';
-import 'package:clubhouse_clone_ui_kit/model/user.dart';
+import 'package:partyboard_client/datas/clubdatas.dart';
+import 'package:partyboard_client/datas/usersdatas.dart';
+import 'package:partyboard_client/model/room.dart';
+import 'package:partyboard_client/model/user.dart';
 
 List<Room> rooms = [
   Room(club1.name, "Meditation for healthy life", users: [

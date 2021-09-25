@@ -1,5 +1,5 @@
-import 'package:clubhouse_clone_ui_kit/datas/interestDatas.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/interestitemwidget.dart';
+import 'package:partyboard_client/datas/interestDatas.dart';
+import 'package:partyboard_client/widgets/interestitemwidget.dart';
 import 'package:flutter/material.dart';
 
 import 'constant.dart';

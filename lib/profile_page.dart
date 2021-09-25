@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:agent_dart/agent_dart.dart';
-import 'package:clubhouse_clone_ui_kit/constant.dart';
-import 'package:clubhouse_clone_ui_kit/followers_page.dart';
-import 'package:clubhouse_clone_ui_kit/following_page.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/followers_page.dart';
+import 'package:partyboard_client/following_page.dart';
+import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:pem/pem.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,7 +75,7 @@ class _ProfilePage extends State<ProfilePage> {
               SizedBox(
                 height: 15,
               ),
-              Text("PAB#1"),
+              Text("@pab##0"),
               SizedBox(
                 height: 2,
               ),

@@ -1,5 +1,5 @@
-import 'package:clubhouse_clone_ui_kit/model/room.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/model/room.dart';
+import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 

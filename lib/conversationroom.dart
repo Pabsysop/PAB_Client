@@ -1,19 +1,73 @@
 import 'dart:math';
 
-import 'package:clubhouse_clone_ui_kit/model/room.dart';
-import 'package:clubhouse_clone_ui_kit/model/roomuser.dart';
-import 'package:clubhouse_clone_ui_kit/profile_page.dart';
-import 'package:clubhouse_clone_ui_kit/roomuserwidget.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/model/room.dart';
+import 'package:partyboard_client/model/roomuser.dart';
+import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/roomuserwidget.dart';
+import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:agora_rtc_engine/rtc_engine.dart';
+import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
+import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
+import 'package:permission_handler/permission_handler.dart';
 
 import 'constant.dart';
 import 'datas/usersdatas.dart';
 
-class ConversationRoom extends StatelessWidget {
-  final Room room;
-  const ConversationRoom(this.room, {Key? key}) : super(key: key);
+const appId = "c2a463d954a8439196fffbbae156b8f1";
+const token = "";
+
+class ConversationRoom extends StatefulWidget {
+
+  @override
+  _ConversationRoomState createState() => _ConversationRoomState();
+}
+
+class _ConversationRoomState extends State<ConversationRoom> {
+  int? _remoteUid;
+  bool _localUserJoined = false;
+  late RtcEngine _engine;
+  late Room room;
+
+  @override
+  void initState() {
+    super.initState();
+    initAgora();
+  }
+
+  Future<void> initAgora() async {
+    // retrieve permissions
+    await [Permission.microphone, Permission.camera].request();
+
+    //create the engine
+    _engine = await RtcEngine.create(appId);
+    await _engine.enableVideo();
+    _engine.setEventHandler(
+      RtcEngineEventHandler(
+        joinChannelSuccess: (String channel, int uid, int elapsed) {
+          print("local user $uid joined");
+          setState(() {
+            _localUserJoined = true;
+          });
+        },
+        userJoined: (int uid, int elapsed) {
+          print("remote user $uid joined");
+          setState(() {
+            _remoteUid = uid;
+          });
+        },
+        userOffline: (int uid, UserOfflineReason reason) {
+          print("remote user $uid left channel");
+          setState(() {
+            _remoteUid = null;
+          });
+        },
+      ),
+    );
+
+    await _engine.joinChannel(token, "test", null, 0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +180,17 @@ class ConversationRoom extends StatelessWidget {
       ),
       bottomSheet: getBottomSheet(context),
     );
+  }
+
+  Widget _remoteVideo() {
+    if (_remoteUid != null) {
+      return RtcRemoteView.SurfaceView(uid: _remoteUid!);
+    } else {
+      return Text(
+        'Please wait for remote user to join',
+        textAlign: TextAlign.center,
+      );
+    }
   }
 
   getBottomSheet(context) {

@@ -1,7 +1,7 @@
-import 'package:clubhouse_clone_ui_kit/codepage.dart';
-import 'package:clubhouse_clone_ui_kit/constant.dart';
-import 'package:clubhouse_clone_ui_kit/homepage.dart';
-import 'package:clubhouse_clone_ui_kit/loginpage.dart';
+import 'package:partyboard_client/codepage.dart';
+import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/homepage.dart';
+import 'package:partyboard_client/loginpage.dart';
 import 'package:country_code_picker/country_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

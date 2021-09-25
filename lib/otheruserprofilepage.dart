@@ -1,6 +1,6 @@
-import 'package:clubhouse_clone_ui_kit/clubwidget.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/button.dart';
-import 'package:clubhouse_clone_ui_kit/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/clubwidget.dart';
+import 'package:partyboard_client/widgets/button.dart';
+import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
