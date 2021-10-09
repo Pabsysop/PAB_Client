@@ -9,6 +9,10 @@ const buttonFontSize = 20.0;
 
 //key for storage
 const localStorePath = "user";
+const lifePrefsKey = "lifeCanisterID";
+const avatarPrefsKey = "avatarCanisterId";
+const pkeyPrefsKey = "pKey";
+const avatarIdxPrefsKey = "avatarNftIdx";
 
 // const buttonTextColor = Color.fromRGBO(81, 120, 164, 1);
 TextStyle primaryFont = GoogleFonts.openSans(fontStyle: FontStyle.normal);

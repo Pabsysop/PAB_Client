@@ -16,7 +16,7 @@ PopupHUD showProgress(BuildContext context){
   final popup = PopupHUD(
     context,
     hud: HUD(
-      label: '申请PAB元宇宙公民Visa NFT',
+      label: 'Register PAB Metaverse\n Citizen Visa NFT',
       detailLabel: 'applying..',
     ),
   );
@@ -110,8 +110,8 @@ class CodePage extends StatelessWidget {
                   popup.setDetailLabel('Progress ${(0.6 * 100).toInt()}%..');
                   var pkStr = PemCodec(PemLabel.privateKey).encode(_identity.getKeyPair().secretKey);
                   final SharedPreferences prefs = await SharedPreferences.getInstance();
-                  prefs.setString("lifeCanisterID", lifeId.toText());
-                  prefs.setString("pKey", pkStr);
+                  prefs.setString(lifePrefsKey, lifeId.toText());
+                  prefs.setString(pkeyPrefsKey, pkStr);
                   popup.setValue(1.0);
                   popup.setDetailLabel('Progress ${(1.0 * 100).toInt()}%..');
 

@@ -1,5 +1,6 @@
+import 'dart:typed_data';
 import 'package:partyboard_client/otheruserprofilepage.dart';
-import 'package:partyboard_client/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/widgets/memory_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -15,15 +16,15 @@ class RoomUserWidget extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.push(context,
-            MaterialPageRoute(builder: (_) => OtherUserProfilePage(user.user)));
+            MaterialPageRoute(builder: (_) => OtherUserProfilePage()));
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Stack(
             children: [
-              ProfileImageWidget(
-                user.user.image,
+              MemoryImageWidget(
+                user.user.avatarBytes ?? Uint8List(0),
                 60,
               ),
               if (user.isNew)
@@ -63,7 +64,7 @@ class RoomUserWidget extends StatelessWidget {
             height: 5,
           ),
           Text(
-            (user.isOwner ? '✳️ ' : " ") + user.user.name,
+            (user.isOwner ? '✳️ ' : " ") + (user.user.name ?? ""),
             overflow: TextOverflow.ellipsis,
           )
         ],

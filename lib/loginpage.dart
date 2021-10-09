@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:agent_dart/agent/auth.dart';
 import 'package:agent_dart/agent_dart.dart';
 import 'package:agent_dart/principal/principal.dart';
+import 'package:partyboard_client/ICP/anderson.dart';
 import 'package:partyboard_client/ICP/nais.dart';
 import 'package:partyboard_client/avatars_page.dart';
 import 'package:partyboard_client/constant.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:pem/pem.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ICP/agent_factory.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class LoginPage extends StatefulWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -24,33 +26,47 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   double size = 256;
-  List<PlatformFile>? _paths;
-  String? _extension;
-  bool _multiPick = false;
-  FileType _pickingType = FileType.image;
-  late Nais _nais;
   Identity? _identity;
   Principal? _myLife;
-  String _myAvatar = "not nft avatar";
   bool enableNext = false;
+  late Uint8List _avatarBytes;
   
+  @override
+  void initState(){
+    super.initState();
+    getUserEnv();
+    setImageBytes();
+  }
+
   void getUserEnv() {
     SharedPreferences.getInstance().then((prefs) {
-      String? lifeId = prefs.getString("lifeCanisterID");
+      String? lifeId = prefs.getString(lifePrefsKey);
       if (lifeId != null) {
         setState(() {
           _myLife = Principal.fromText(lifeId);
         });
       }
-      String? pKey = prefs.getString("pKey");
+      String? pKey = prefs.getString(pkeyPrefsKey);
       if (pKey != null) {
         var pkBytes = PemCodec(PemLabel.privateKey).decode(pKey);
         setState(() {
           _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
         });
       }
-      enableNext = true;
-      return;
+    });
+    if (_myLife != null && _identity != null){
+      setState(() {
+        enableNext = true;
+      });
+    }
+  }
+
+  void setImageBytes(){
+    rootBundle.load("assets/images/avatar-3.jpg").then(
+      (contents){
+        setState(() {
+          _avatarBytes = contents.buffer.asUint8List();
+        });
     });
   }
 
@@ -61,33 +77,39 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  @override
-  void initState(){
-    super.initState();
-    getUserEnv();
+  Future<void> upAvatar(String id) {
+    var anderson = NaisAgentFactory.create(
+          canisterId: _myLife!.toText(),
+          url: replicaUrl,
+          idl: andersonIdl,
+          identity: _identity,
+    ).hook(Anderson());
+    return anderson.upAvatar(id);
   }
 
-void _openFileExplorer() async {
+  void _openFileExplorer() async {
+
     try {
-      _paths = (await FilePicker.platform.pickFiles(
-        type: _pickingType,
-        allowMultiple: _multiPick,
-        onFileLoading: (FilePickerStatus status) => print(status),
-        allowedExtensions: (_extension?.isNotEmpty ?? false) ? _extension?.replaceAll(' ', '').split(',') : null,
-      ))?.files;
-      var fd = File(_paths!.single.path!);
-      var contents = await fd.readAsBytes();
-      _nais = NaisAgentFactory.create(
+      var nais = NaisAgentFactory.create(
             canisterId: naisCanisterId,
             url: replicaUrl,
             idl: naisIdl,
             identity: _identity,
       ).hook(Nais());
-      var avatarId = await _nais.makeAvatarNFT(contents);
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString("avatar_nft", avatarId);
+
+      var paths = (await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        onFileLoading: (FilePickerStatus status) => print(status),
+        allowedExtensions: null,
+      ))?.files;
+
+      var fd = File(paths!.single.path!);
+      var contents = await fd.readAsBytes();
+      var avatarIdx = await nais.makeAvatarNFT(contents);
+      await upAvatar(avatarIdx);
       setState(() {
-        _myAvatar = avatarId;
+        _avatarBytes = contents;
       });
     } on PlatformException catch (e) {
       print("Unsupported operation" + e.toString());
@@ -108,25 +130,11 @@ void _openFileExplorer() async {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "#$_myAvatar",
-                    style: TextStyle(fontSize: headingFontSize),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () { }
-                  ),
-                ],
-              ),
               Column(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.all(Radius.circular(size / 2.2)),
-                    child: Image.asset(
-                      "assets/images/avatar-3.jpg",
+                    child: Image.memory(_avatarBytes,
                       width: size,
                       height: size,
                       fit: BoxFit.fill,
@@ -183,7 +191,7 @@ void _openFileExplorer() async {
                       borderRadius: BorderRadius.circular(32.0)),
                   minimumSize: Size(150, 50), //////// HERE
                 ),
-                onPressed: !enableNext ? null : () => nextPressed(context),
+                onPressed: enableNext ? () => nextPressed(context) : null,
                 child: Text(
                   '->',
                   style: TextStyle(fontSize: buttonFontSize),

@@ -1,20 +1,24 @@
+import 'dart:collection';
 import 'dart:math';
-
+import 'dart:typed_data';
 import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/otheruserprofilepage.dart';
 import 'package:partyboard_client/widgets/button.dart';
+import 'package:partyboard_client/widgets/memory_image_widget.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import 'model/club.dart';
 
 // ignore: must_be_immutable
 class ClubWidget extends StatelessWidget {
   final Club club;
   bool isFollowing;
+  final HashMap<String, String> usersName;
+  final HashMap<String, Uint8List> usersAvatarBytes;
 
-  ClubWidget(this.club, this.isFollowing, {Key? key}) : super(key: key);
+  ClubWidget(this.club, this.isFollowing, this.usersName, this.usersAvatarBytes, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +36,13 @@ class ClubWidget extends StatelessWidget {
                 // crossAxisAlignment: CrossAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(child: ProfileImageWidget(club.image, 80)),
+                  Center(child: ProfileImageWidget(clubImage1, 80)),
                   SizedBox(
                     height: 13,
                   ),
                   Center(
                     child: Text(
-                      club.name + ' 🏡',
+                      club.title??"" + ' 🏡',
                       textAlign: TextAlign.center,
                       style: Theme.of(context)
                           .textTheme
@@ -96,7 +100,7 @@ class ClubWidget extends StatelessWidget {
                     thickness: 1,
                   ),
                   Text(
-                    club.about,
+                    club.about??"",
                   ),
                   SizedBox(
                     height: 15,
@@ -131,17 +135,12 @@ class ClubWidget extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (_) =>
-                                  OtherUserProfilePage(club.followers[index])));
+                                  OtherUserProfilePage()));
                     },
                     leading:
-                        ProfileImageWidget(club.followers[index].image, 40),
+                        MemoryImageWidget(usersAvatarBytes[club.followers[index].digitalLifeId.toText()]??Uint8List(0), 40),
                     title: Text(
-                      club.followers[index].name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      club.followers[index].about,
-                      maxLines: 2,
+                      usersName[club.followers[index].digitalLifeId.toText()] ?? "",
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: FollowButton(Random().nextBool()),

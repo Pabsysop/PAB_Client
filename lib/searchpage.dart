@@ -1,9 +1,10 @@
 import 'package:partyboard_client/constant.dart';
-import 'package:partyboard_client/datas/roomdata.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/widgets/button.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/material.dart';
 
+import 'model/user.dart';
 import 'otheruserprofilepage.dart';
 
 class SearchPage extends StatefulWidget {
@@ -14,6 +15,8 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
+  List<User> tempUsers = [];
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
@@ -85,18 +88,13 @@ class _SearchPageState extends State<SearchPage> {
                             context,
                             MaterialPageRoute(
                                 builder: (builder) =>
-                                    OtherUserProfilePage(tempUsers[index])));
+                                    OtherUserProfilePage()));
                       },
                       contentPadding: EdgeInsets.zero,
-                      leading: ProfileImageWidget(tempUsers[index].image, 40),
+                      leading: ProfileImageWidget(clubImage2, 40),
                       title: Text(
-                        tempUsers[index].name,
+                        tempUsers[index].digitalLifeId.toText(),
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        tempUsers[index].about,
-                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: FollowButton(false),

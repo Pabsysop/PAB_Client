@@ -1,11 +1,15 @@
+import 'dart:typed_data';
 import 'package:partyboard_client/model/room.dart';
-import 'package:partyboard_client/widgets/profile_image_widget.dart';
+import 'package:partyboard_client/widgets/memory_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class RoomWidget extends StatelessWidget {
   final Room room;
-  const RoomWidget(this.room, {Key? key}) : super(key: key);
+  final String clubName;
+  final List<Uint8List> usersAvatarBytes;
+  final List<String> usersName;
+  const RoomWidget(this.room, this.clubName, this.usersAvatarBytes, this.usersName, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,12 +20,12 @@ class RoomWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(room.clubName + " 🏡"),
+            Text(clubName + " 🏡"),
             SizedBox(
               height: 5,
             ),
             Text(
-              room.topic,
+              room.title,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(
@@ -40,11 +44,11 @@ class RoomWidget extends StatelessWidget {
                         Positioned(
                             left: 28,
                             top: 28,
-                            child: ProfileImageWidget(room.users[0].image, 50)),
+                            child: MemoryImageWidget(usersAvatarBytes[0], 50)),
                         Positioned(
                             left: 0,
                             top: 0,
-                            child: ProfileImageWidget(room.users[1].image, 50)),
+                            child: MemoryImageWidget(usersAvatarBytes[1], 50)),
                       ],
                     ),
                   ),
@@ -55,14 +59,14 @@ class RoomWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ...room.users.take(5).map((e) => Row(
+                        ...usersName.take(5).map((name) => Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Flexible(
                                   child: Text(
-                                    e.name,
+                                    name,
                                   ),
                                 ),
                                 SizedBox(
