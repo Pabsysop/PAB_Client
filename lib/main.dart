@@ -101,6 +101,7 @@ class MyApp extends StatelessWidget {
         CountryLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(
           primarySwatch: Colors.green,
@@ -160,7 +161,6 @@ class StartPage extends StatelessWidget {
                       onPressed: () async {
                         final SharedPreferences prefs = await SharedPreferences.getInstance();
                         var lifeId = prefs.getString("lifeCanisterID");
-                        var pKey = prefs.getString("pKey");
                         var avatar = prefs.getString("avatarNFT");
                         if (lifeId == null) {
                           Navigator.of(context).push(

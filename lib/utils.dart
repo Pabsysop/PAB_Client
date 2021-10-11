@@ -1,4 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_hud/flutter_hud.dart';
+
+import 'constant.dart';
+
+PopupHUD showProgress(BuildContext context, String title){
+  final popup = PopupHUD(
+    context,
+    hud: HUD(
+      label: title,
+      detailLabel: 'waiting...',
+    ),
+  );
+  popup.show();
+  return popup;
+}
+
+void getDefaultAvatar(){
+  rootBundle.load(defaultAvatar).then((contents){
+    contents.buffer.asUint8List();
+  });
+}
 
 Future<void> showTipsDialog(BuildContext context, String tips1, String tips2) async {
   return showDialog<void>(

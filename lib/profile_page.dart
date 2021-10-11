@@ -1,52 +1,74 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/constant.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/followers_page.dart';
 import 'package:partyboard_client/following_page.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:pem/pem.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'clubwidget.dart';
-import 'datas/usersdatas.dart';
+import 'model/crypto.dart';
+import 'model/user.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+// ignore: must_be_immutable
+class ProfilePage extends StatefulWidget{
+  ProfilePage({Key? key}) : super(key: key);
+  ValueNotifier reset = ValueNotifier(false);
 
   @override
-  _ProfilePage createState() => _ProfilePage();
+  _ProfilePageState createState() => _ProfilePageState();
 }
 
-class _ProfilePage extends State<ProfilePage> {
-  Identity? _identity;
-  Principal? _myLife;
-  String _myAvatar = "not nft avatar";
-
-  void getUserEnv() {
-    SharedPreferences.getInstance().then((prefs) {
-      String? lifeId = prefs.getString("lifeCanisterID");
-      if (lifeId != null) {
-        setState(() {
-          _myLife = Principal.fromText(lifeId);
-        });
-      }
-      String? pKey = prefs.getString("pKey");
-      if (pKey != null) {
-        var pkBytes = PemCodec(PemLabel.privateKey).decode(pKey);
-        setState(() {
-          _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
-        });
-      }
-      return;
-    });
-  }
+class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
+  late Identity _identity;
+  late User _myDigitalLife;
+  Uint8List _avatarBytes = Uint8List(0);
+  String _myName = "";
+  HashMap<String, Uint8List> userAvatarBytes = new HashMap();
+  HashMap<String, String> usersName = new HashMap();
 
   @override
   void initState(){
     super.initState();
+
     getUserEnv();
+
+    widget.reset.addListener(() {
+      debugPrint("prefs got ok");
+
+      _myDigitalLife.getAvatarBytes(_identity).then((value){
+        setState(() {
+          userAvatarBytes[_myDigitalLife.digitalLifeId.toText()] = value;
+          _avatarBytes = value;
+        });
+      });
+
+      _myDigitalLife.myName(_identity).then((value){
+        setState(() {
+          _myName = value;
+          usersName[_myDigitalLife.digitalLifeId.toText()] = value;
+        });
+      });
+    });
+  }
+
+  void getUserEnv() {
+    Crypto.getIdentity().then((ident){
+
+      setState(() {
+        _identity = ident;
+      });
+
+      User.newUser(null).then((me) {
+        setState(() {
+          _myDigitalLife = me;
+        });
+        widget.reset.notifyListeners();
+      });
+    });
   }
 
   @override
@@ -63,25 +85,53 @@ class _ProfilePage extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
-                child: Image.asset(
-                  "assets/images/avatar-3.jpg",
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.fill,
-                ),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
+                    child: Image.memory(_avatarBytes,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("nick:" + _myName),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Text("id: " + _myDigitalLife.digitalLifeId.toText()),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Text("[incentives]"),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 5,
+                              ),
+                              Text("likes: 10PAB" ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              Text("Minings: 10PAB"),
+                            ]
+                          )
+                        )
+                      ]
+                    )
+                  )
+                ]
               ),
               SizedBox(
-                height: 15,
-              ),
-              Text("@pab##0"),
-              SizedBox(
-                height: 2,
-              ),
-              Text(_myLife == null ? "" : _myLife.toString()),
-              SizedBox(
-                height: 15,
+                height: 40,
               ),
               Row(
                 children: [
@@ -96,11 +146,11 @@ class _ProfilePage extends State<ProfilePage> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    FollowersPage(user10.followers)),
+                                    FollowersPage(_myDigitalLife.followers)),
                           );
                         },
                         child: Text(
-                            user10.followers.length.toString() + " Followers")),
+                            _myDigitalLife.followers.length.toString() + " Followers")),
                     flex: 1,
                   ),
                   // SizedBox(
@@ -112,16 +162,19 @@ class _ProfilePage extends State<ProfilePage> {
                         highlightColor: Colors.transparent,
                         hoverColor: Colors.transparent,
                         focusColor: Colors.transparent,
-                        child: Text((user10.followingClub.length +
-                                    user10.following.length)
+                        child: Text((_myDigitalLife.followingClub.length +
+                                    _myDigitalLife.following.length)
                                 .toString() +
                             " Following"),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => FollowingPage(
-                                    user10.following, user10.followingClub)),
+                              builder: (context) => FollowingPage(
+                                _myDigitalLife.following, _myDigitalLife.followingClub,
+                                userAvatarBytes, usersName
+                              )
+                            ),
                           );
                         }),
                     flex: 2,
@@ -131,44 +184,14 @@ class _ProfilePage extends State<ProfilePage> {
               SizedBox(
                 height: 31,
               ),
-              Text(no_description_hint),
+              Text("Description: " + no_description_hint),
               SizedBox(
                 height: 20,
-              ),
-              if (user10.nominee != null)
-                Row(
-                  children: [
-                    ProfileImageWidget(user10.nominee!.image, 40),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Joined Feb 24, 2021"),
-                        RichText(
-                          text: TextSpan(
-                            text: 'Invited by ',
-                            style: TextStyle(color: Colors.black),
-                            children: <TextSpan>[
-                              TextSpan(
-                                  text: user10.nominee!.name,
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              SizedBox(
-                height: 40,
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Member of"),
+                  Text("Boards"),
                   SizedBox(
                     height: 10,
                   ),
@@ -185,12 +208,15 @@ class _ProfilePage extends State<ProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (_) => ClubWidget(
-                                              user10.followingClub[index],
-                                              true)));
+                                              _myDigitalLife.followingClub[index], true,
+                                              _myDigitalLife.followingClub[index].followers
+                                          )
+                                      )
+                                  );
                                 },
-                                child: index < user10.followingClub.length
+                                child: index < _myDigitalLife.followingClub.length
                                     ? ProfileImageWidget(
-                                        user10.followingClub[index].image, 40)
+                                        clubImage3, 40)
                                     : Container(
                                         width: 40,
                                         height: 40,
@@ -208,7 +234,7 @@ class _ProfilePage extends State<ProfilePage> {
                                             )),
                                       )));
                       },
-                      itemCount: user10.followingClub.length + 1,
+                      itemCount: _myDigitalLife.followingClub.length + 1,
                     ),
                   )
                 ],

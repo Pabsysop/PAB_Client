@@ -1,72 +1,171 @@
-import 'dart:math';
-
+import 'dart:convert';
+import 'package:agent_dart/agent_dart.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/model/room.dart';
 import 'package:partyboard_client/model/roomuser.dart';
-import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/otheruserprofilepage.dart';
 import 'package:partyboard_client/roomuserwidget.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/rtc_engine.dart';
-import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:crypto/crypto.dart';
 import 'constant.dart';
-import 'datas/usersdatas.dart';
+import 'model/crypto.dart';
+import 'model/user.dart';
 
 const appId = "c2a463d954a8439196fffbbae156b8f1";
-const token = "";
+const token = "006c2a463d954a8439196fffbbae156b8f1IABGjGhVktFmCDuC6ODKm3PpequlPeUeIKuwtq/pUGyfMYJpNZYAAAAAEAAc0c8od2ZlYQEAAQB3ZmVh";
 
+// ignore: must_be_immutable
 class ConversationRoom extends StatefulWidget {
+  final Room inRoom;
+  final String clubName;
+
+  ValueNotifier reset = ValueNotifier(false);
+
+  ConversationRoom(this.inRoom, this.clubName, {Key? key}) : super(key: key);
 
   @override
   _ConversationRoomState createState() => _ConversationRoomState();
 }
 
-class _ConversationRoomState extends State<ConversationRoom> {
-  int? _remoteUid;
-  bool _localUserJoined = false;
+class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier {
   late RtcEngine _engine;
   late Room room;
+  late Identity _identity;
+  late User _myDigitalLife;
+  List<RoomUser> _users = [];
+  List<RoomUser> _audiens = [];
+  List<RoomUser> _speakers = [];
+  late RoomUser _owner;
+
+  void listenFor(User user, List<RoomUser> belongTo){
+    var ru = RoomUser(user, user.digitalLifeId.toText());
+    user.addListener(() {
+      setState(() {
+        belongTo.add(ru);
+      });
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    initAgora();
+
+    room = widget.inRoom;
+
+    _owner = RoomUser(User(room.owner), room.owner.toText());
+
+    widget.reset.addListener(() {
+      debugPrint("prefs got ok");
+
+      for (var user in room.speakersUsers) {
+        listenFor(user, _speakers);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+      }
+      for (var user in room.audiensUsers) {
+        listenFor(user, _audiens);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+      }
+
+      var owner = RoomUser(User(room.owner), room.owner.toText());
+      owner.user.addListener(() {
+        setState(() {
+          _owner = owner;
+        });
+      });
+      owner.user.retrieveName(_identity);
+
+      initialize();
+
+    });
+
+    getUserEnv();
+
   }
 
-  Future<void> initAgora() async {
+ @override
+ void dispose() {
+   super.dispose();
+
+   _users.clear();
+   _engine.leaveChannel();
+   _engine.destroy();
+ }
+
+  void getUserEnv() {
+    Crypto.getIdentity().then((ident){
+      setState(() {
+        _identity = ident;
+      });
+
+      User.newUser(null).then((me) {
+        setState(() {
+          _myDigitalLife = me;
+        });
+        widget.reset.notifyListeners();
+      });
+    });
+  }
+
+  Future<void> initialize() async {
     // retrieve permissions
     await [Permission.microphone, Permission.camera].request();
 
-    //create the engine
-    _engine = await RtcEngine.create(appId);
-    await _engine.enableVideo();
-    _engine.setEventHandler(
-      RtcEngineEventHandler(
-        joinChannelSuccess: (String channel, int uid, int elapsed) {
-          print("local user $uid joined");
-          setState(() {
-            _localUserJoined = true;
-          });
-        },
-        userJoined: (int uid, int elapsed) {
-          print("remote user $uid joined");
-          setState(() {
-            _remoteUid = uid;
-          });
-        },
-        userOffline: (int uid, UserOfflineReason reason) {
-          print("remote user $uid left channel");
-          setState(() {
-            _remoteUid = null;
-          });
-        },
-      ),
-    );
+    await _initAgoraRtcEngine();
 
-    await _engine.joinChannel(token, "test", null, 0);
+    _engine.registerLocalUserAccount(appId, _myDigitalLife.digitalLifeId.toText());
+
+    _addAgoraEventHandlers();
+
+    var channelName = sha256.convert(utf8.encode(room.id+room.clubId.toText())).toString();
+
+    await _engine.joinChannelWithUserAccount(token, channelName, _myDigitalLife.digitalLifeId.toText());
+  }
+  
+  Future<void> _initAgoraRtcEngine() async {
+    _engine = await RtcEngine.create(appId);
+    await _engine.enableAudio();
+    if (_myDigitalLife.digitalLifeId == room.owner){
+      await _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
+      await _engine.setClientRole(ClientRole.Broadcaster);
+    } else if(room.speakers.contains(_myDigitalLife.digitalLifeId)){
+      await _engine.setClientRole(ClientRole.Broadcaster);
+    }else{
+      await _engine.setClientRole(ClientRole.Audience);
+    }
+  }
+
+  void _addAgoraEventHandlers() {
+    _engine.setEventHandler(RtcEngineEventHandler(
+      error: (code) {
+        print('onError: $code');
+      },
+      joinChannelSuccess: (channel, uid, elapsed) {
+        print('onJoinChannel: $channel, uid: $uid');
+        var user = User(Principal.fromText(uid as String));
+        listenFor(user, _audiens);
+        user.retrieveName(_identity);
+        user.retrieveAvatarBytes(_identity);
+      },
+      leaveChannel: (stats) {
+        setState(() {
+          print('onLeaveChannel');
+          _users.clear();
+        });
+      },
+      userJoined: (uid, elapsed) {
+        print('userJoined: $uid');
+        var user = User(Principal.fromText(uid as String));
+        listenFor(user, _audiens);
+        user.retrieveName(_identity);
+        user.retrieveAvatarBytes(_identity);
+      },
+    ));
   }
 
   @override
@@ -74,21 +173,21 @@ class _ConversationRoomState extends State<ConversationRoom> {
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 110,
-        leading: TextButton.icon(
+        leading: SingleChildScrollView(scrollDirection:Axis.horizontal, child: TextButton.icon(
             onPressed: () => {Navigator.pop(context)},
             style: TextButton.styleFrom(primary: Colors.black),
             icon: Icon(CupertinoIcons.chevron_down),
-            label: Text("Hallway")),
+            label: Text(_owner.user.getName())),
+        ),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(CupertinoIcons.doc)),
           IconButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfilePage()),
+                  MaterialPageRoute(builder: (context) => OtherUserProfilePage(_users[0].user)),
                 );
               },
-              icon: ProfileImageWidget(user10.image, 30)),
+              icon: ProfileImageWidget(clubImage1, 30)),
         ],
       ),
       body: Container(
@@ -107,7 +206,7 @@ class _ConversationRoomState extends State<ConversationRoom> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(room.clubName.toUpperCase() + ' 🏡',
+                      Text(widget.clubName.toUpperCase() + ' 🏡',
                           style: Theme.of(context)
                               .textTheme
                               .headline6!
@@ -119,7 +218,7 @@ class _ConversationRoomState extends State<ConversationRoom> {
                     ],
                   ),
                   Text(
-                    room.topic,
+                    room.title,
                     style: Theme.of(context).textTheme.bodyText1!.copyWith(
                         fontSize: bodyFontSize, fontWeight: FontWeight.bold),
                   )
@@ -132,17 +231,14 @@ class _ConversationRoomState extends State<ConversationRoom> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ...room.users.map((e) => RoomUserWidget(RoomUser(e,
-                      isMute: Random().nextBool(),
-                      isNew: Random().nextBool(),
-                      isOwner: true)))
+                  ..._speakers.map((e) => RoomUserWidget(e))
                 ],
               ),
             ),
             SliverToBoxAdapter(
               child: Text(
-                "Followed by the speakers",
-                style: TextStyle(fontSize: 14, color: Colors.grey[350]),
+                "audiens",
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ),
             SliverPadding(
@@ -151,17 +247,14 @@ class _ConversationRoomState extends State<ConversationRoom> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ...room.followedBySpeakers.map((e) => RoomUserWidget(RoomUser(
-                      e,
-                      isMute: Random().nextBool(),
-                      isNew: Random().nextBool())))
+                  ..._audiens.map((u) => RoomUserWidget(u))
                 ],
               ),
             ),
             SliverToBoxAdapter(
               child: Text(
                 "Others in the room",
-                style: TextStyle(fontSize: 14, color: Colors.grey[350]),
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ),
             SliverPadding(
@@ -170,8 +263,7 @@ class _ConversationRoomState extends State<ConversationRoom> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ...room.otherUsers.map((e) => RoomUserWidget(RoomUser(e,
-                      isMute: Random().nextBool(), isNew: Random().nextBool())))
+                  ..._users.map((u) => RoomUserWidget(u))
                 ],
               ),
             ),
@@ -180,17 +272,6 @@ class _ConversationRoomState extends State<ConversationRoom> {
       ),
       bottomSheet: getBottomSheet(context),
     );
-  }
-
-  Widget _remoteVideo() {
-    if (_remoteUid != null) {
-      return RtcRemoteView.SurfaceView(uid: _remoteUid!);
-    } else {
-      return Text(
-        'Please wait for remote user to join',
-        textAlign: TextAlign.center,
-      );
-    }
   }
 
   getBottomSheet(context) {
@@ -203,6 +284,7 @@ class _ConversationRoomState extends State<ConversationRoom> {
       child: Row(
         children: [
           InkWell(
+            onTap: () {},
             child: Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -222,7 +304,7 @@ class _ConversationRoomState extends State<ConversationRoom> {
             onTap: () {},
             child: Container(
               padding: EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.add),
+              child: Icon(CupertinoIcons.hand_thumbsup),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.grey[200],

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:agent_dart/agent/auth.dart';
 import 'package:agent_dart/agent_dart.dart';
 import 'package:agent_dart/principal/principal.dart';
+import 'package:partyboard_client/ICP/anderson.dart';
 import 'package:partyboard_client/ICP/nais.dart';
 import 'package:partyboard_client/avatars_page.dart';
 import 'package:partyboard_client/constant.dart';
@@ -11,9 +12,12 @@ import 'package:partyboard_client/homepage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:partyboard_client/utils.dart';
 import 'package:pem/pem.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ICP/agent_factory.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
 
 class LoginPage extends StatefulWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -23,34 +27,50 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  double size = 256;
-  List<PlatformFile>? _paths;
-  String? _extension;
-  bool _multiPick = false;
-  FileType _pickingType = FileType.image;
-  late Nais _nais;
+  double size = 220;
   Identity? _identity;
   Principal? _myLife;
-  String _myAvatar = "not nft avatar";
   bool enableNext = false;
+  Uint8List _avatarBytes = Uint8List(0);
+  String _defaultAvatar = "assets/images/avatar-1.jpg";
+  String _avatarDesc = "not NFT Avatar";
   
+  @override
+  void initState(){
+    super.initState();
+    getUserEnv();
+    setImageBytes();
+  }
+
   void getUserEnv() {
     SharedPreferences.getInstance().then((prefs) {
-      String? lifeId = prefs.getString("lifeCanisterID");
+      String? lifeId = prefs.getString(lifePrefsKey);
       if (lifeId != null) {
         setState(() {
           _myLife = Principal.fromText(lifeId);
         });
       }
-      String? pKey = prefs.getString("pKey");
+      String? pKey = prefs.getString(pkeyPrefsKey);
       if (pKey != null) {
         var pkBytes = PemCodec(PemLabel.privateKey).decode(pKey);
         setState(() {
           _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
         });
       }
-      enableNext = true;
-      return;
+      if (_myLife != null && _identity != null){
+        setState(() {
+          enableNext = true;
+        });
+      }
+    });
+  }
+
+  void setImageBytes(){
+    rootBundle.load(_defaultAvatar).then(
+      (contents){
+        setState(() {
+          _avatarBytes = contents.buffer.asUint8List();
+        });
     });
   }
 
@@ -61,33 +81,48 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  @override
-  void initState(){
-    super.initState();
-    getUserEnv();
+  Future<void> upAvatar(String id, String src) {
+    var anderson = NaisAgentFactory.create(
+          canisterId: _myLife!.toText(),
+          url: replicaUrl,
+          idl: andersonIdl,
+          identity: _identity,
+    ).hook(Anderson());
+    return anderson.upAvatar(id, src);
   }
 
-void _openFileExplorer() async {
-    try {
-      _paths = (await FilePicker.platform.pickFiles(
-        type: _pickingType,
-        allowMultiple: _multiPick,
-        onFileLoading: (FilePickerStatus status) => print(status),
-        allowedExtensions: (_extension?.isNotEmpty ?? false) ? _extension?.replaceAll(' ', '').split(',') : null,
-      ))?.files;
-      var fd = File(_paths!.single.path!);
-      var contents = await fd.readAsBytes();
-      _nais = NaisAgentFactory.create(
+  Future<void> requestAvatarNFT(Uint8List contents, BuildContext context) async{
+      var nais = NaisAgentFactory.create(
             canisterId: naisCanisterId,
             url: replicaUrl,
             idl: naisIdl,
             identity: _identity,
       ).hook(Nais());
-      var avatarId = await _nais.makeAvatarNFT(contents);
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString("avatar_nft", avatarId);
+
+      var pop = showProgress(context, "upload nft data");
+      var avatarIdx = await nais.makeAvatarNFT(contents);
+      await upAvatar(avatarIdx, "DFINITY");
       setState(() {
-        _myAvatar = avatarId;
+        _avatarDesc = "NFT Avatar #" + avatarIdx;
+      });
+      pop.dismiss();
+  }
+
+  void _openFileExplorer(BuildContext context) async {
+    try {
+      var paths = (await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        onFileLoading: (FilePickerStatus status) => print(status),
+        allowedExtensions: null,
+      ))?.files;
+      var fd = File(paths!.single.path!);
+      var contents = await fd.readAsBytes();
+
+      await requestAvatarNFT(contents, context);
+
+      setState(() {
+        _avatarBytes = contents;
       });
     } on PlatformException catch (e) {
       print("Unsupported operation" + e.toString());
@@ -108,25 +143,11 @@ void _openFileExplorer() async {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "#$_myAvatar",
-                    style: TextStyle(fontSize: headingFontSize),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () { }
-                  ),
-                ],
-              ),
               Column(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.all(Radius.circular(size / 2.2)),
-                    child: Image.asset(
-                      "assets/images/avatar-3.jpg",
+                    child: Image.memory(_avatarBytes,
                       width: size,
                       height: size,
                       fit: BoxFit.fill,
@@ -135,31 +156,45 @@ void _openFileExplorer() async {
                   SizedBox(
                     height: 15,
                   ),
+                  Text(_avatarDesc),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: Icon(Icons.search),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async{
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => AvatarsPage()),
                           );
+                          if (result != null){
+                            setState(() {
+                              _defaultAvatar = result;
+                            });
+                            setImageBytes();
+                            await upAvatar(_defaultAvatar, "LOCAL");
+                          }
                         }
                       ),
                       IconButton(
                         icon: Icon(Icons.edit),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final bytes = await Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => MyDraw()),
+                            MaterialPageRoute(builder: (context) => MyDrawPage()),
                           );
+                          if (bytes != null){
+                            setState(() {
+                              _avatarBytes = bytes;
+                            });
+                            await requestAvatarNFT(bytes, context);
+                          }
                         }
                       ),
                       IconButton(
                         icon: Icon(Icons.upload),
                         onPressed: (){
-                          _openFileExplorer();
+                          _openFileExplorer(context);
                         }
                       ),
                     ],
@@ -183,7 +218,7 @@ void _openFileExplorer() async {
                       borderRadius: BorderRadius.circular(32.0)),
                   minimumSize: Size(150, 50), //////// HERE
                 ),
-                onPressed: !enableNext ? null : () => nextPressed(context),
+                onPressed: enableNext ? () => nextPressed(context) : null,
                 child: Text(
                   '->',
                   style: TextStyle(fontSize: buttonFontSize),

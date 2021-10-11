@@ -1,6 +1,10 @@
+import 'dart:collection';
+import 'dart:typed_data';
+
 import 'package:partyboard_client/clubwidget.dart';
 import 'package:partyboard_client/constant.dart';
 import 'package:partyboard_client/widgets/button.dart';
+import 'package:partyboard_client/widgets/memory_image_widget.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +13,19 @@ import 'model/club.dart';
 import 'model/user.dart';
 import 'otheruserprofilepage.dart';
 
-class FollowingPage extends StatelessWidget {
+class FollowingPage extends StatefulWidget {
   final List<User> users;
   final List<Club> clubs;
-  const FollowingPage(this.users, this.clubs, {Key? key}) : super(key: key);
+  final HashMap<String, Uint8List> userAvatarBytes;
+  final HashMap<String, String> usersName;
+
+  const FollowingPage(this.users, this.clubs, this.userAvatarBytes, this.usersName, {Key? key}) : super(key: key);
+
+  @override
+  _FollowingState createState() => _FollowingState();
+}
+
+class _FollowingState extends State<FollowingPage> with ChangeNotifier {
 
   @override
   Widget build(BuildContext context) {
@@ -29,19 +42,19 @@ class FollowingPage extends StatelessWidget {
                   return ListTile(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (b) {
-                        return ClubWidget(clubs[index], true);
+                        return ClubWidget(widget.clubs[index], true, widget.users);
                       }));
                     },
-                    leading: ProfileImageWidget(clubs[index].image, 40),
+                    leading: ProfileImageWidget(widget.clubs[index].cover ?? "", 40),
                     title: Text(
-                      clubs[index].name,
+                      widget.clubs[index].title ?? "",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: Icon(CupertinoIcons.forward),
                   );
                 },
-                childCount: clubs.length, // 1000 list items
+                childCount: widget.clubs.length, // 1000 list items
               ),
             ),
             SliverList(
@@ -53,23 +66,18 @@ class FollowingPage extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (builder) =>
-                                  OtherUserProfilePage(users[index])));
+                                  OtherUserProfilePage(widget.users[index])));
                     },
-                    leading: ProfileImageWidget(users[index].image, 40),
+                    leading: MemoryImageWidget(widget.users[index].getAvatar(), 40),
                     title: Text(
-                      users[index].name,
+                      widget.users[index].getName(),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      users[index].about,
-                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: FollowButton(true),
                   );
                 },
-                childCount: users.length, // 1000 list items
+                childCount: widget.users.length, // 1000 list items
               ),
             ),
           ],

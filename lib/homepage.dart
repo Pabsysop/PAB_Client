@@ -1,31 +1,96 @@
+import 'dart:typed_data';
 import 'package:agent_dart/agent/auth.dart';
-import 'package:agent_dart/principal/principal.dart';
+import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/constant.dart';
 import 'package:partyboard_client/conversationroom.dart';
-import 'package:partyboard_client/datas/roomdata.dart';
+import 'package:partyboard_client/model/crypto.dart';
 import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/utils.dart';
 import 'package:partyboard_client/widgets/room_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'ICP/nais.dart';
+import 'model/club.dart';
+import 'model/room.dart';
+import 'model/user.dart';
+
 
 // ignore: must_be_immutable
 class Homepage extends StatefulWidget {
   Homepage({Key? key}) : super(key: key);
-
+  ValueNotifier reset = ValueNotifier(false);
+  
   @override
   _HomepageState createState() => _HomepageState();
 }
 
-class _HomepageState extends State<Homepage> {
-  late Nais _nais;
-  Identity? _identity;
-  Principal? _myLife;
-  String _myAvatar = "not nft avatar";
+class _HomepageState extends State<Homepage> with ChangeNotifier{
+  late Identity _identity;
+  late User _myDigitalLife;
+  List<Club> _clubs = [];
+  List<Room> _rooms = [];
+  Uint8List _avatarBytes = Uint8List(0);
+
+  void getRooms(){
+    _myDigitalLife.loadRoomList(_identity).then((value){
+      setState(() {
+        _clubs.addAll(value[0]);
+        _rooms.addAll(value[1]);
+      });
+    });
+    _myDigitalLife.retrieveFollows(_identity).then((value){
+      for (var user in _myDigitalLife.following) {
+        user.loadRoomList(_identity).then((value){
+          setState(() {
+            _clubs.addAll(value[0]);
+            _rooms.addAll(value[1]);
+          });
+        });
+      }
+    });
+  }
 
   @override
   void initState(){
     super.initState();
+
+    getUserEnv();
+
+    widget.reset.addListener(() {
+      debugPrint("prefs got ok");
+
+      getRooms();
+
+      _myDigitalLife.getAvatarBytes(_identity).then((value){
+        setState(() {
+          _avatarBytes = value;
+        });
+      });
+    });
+  }
+
+  String getClubnameById(Principal clubId){
+    for (var club in _clubs) {
+      if (club.boardId == clubId) {
+        return club.title ?? "";
+      }
+    }
+    return "";
+  }
+
+  void getUserEnv() {
+
+    Crypto.getIdentity().then((ident){
+      setState(() {
+        _identity = ident;
+      });
+
+      User.newUser(null).then((me) {
+        setState(() {
+          _myDigitalLife = me;
+        });
+        widget.reset.notifyListeners();
+      });
+    });
   }
 
   @override
@@ -36,8 +101,7 @@ class _HomepageState extends State<Homepage> {
         leading: IconButton(
           icon: ClipRRect(
             borderRadius: BorderRadius.all(Radius.circular(50 / 2.2)),
-            child: Image.asset(
-              "assets/images/avatar-3.jpg",
+            child: Image.memory(_avatarBytes,
               width: 50,
               height: 50,
               fit: BoxFit.fill,
@@ -73,19 +137,24 @@ class _HomepageState extends State<Homepage> {
             onRefresh: () {
               return Future(() {
                 Future.delayed(Duration(seconds: 4));
-                setState(() {});
+                getRooms();
               });
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ListView(
                 children: [
-                  ...rooms.map((e) => InkWell(
+                  ..._rooms.map((r) => InkWell(
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (c) => ConversationRoom()));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (c) => ConversationRoom(r, getClubnameById(r.clubId))
+                          )
+                        );
                       },
-                      child: RoomWidget(e))),
+                      child: RoomWidget(r, getClubnameById(r.clubId), _identity)
+                    )
+                  ),
                 ],
               ),
             ),
@@ -189,6 +258,7 @@ class BottomModalSheet extends StatefulWidget {
 }
 
 class _BottomModalSheetState extends State<BottomModalSheet> {
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -208,7 +278,7 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
             child: TextButton(
               style: TextButton.styleFrom(primary: Colors.green, elevation: 0),
               onPressed: () {},
-              child: Text('+ Add a topic'),
+              child: Text('choose a room type'),
             ),
           ),
           Row(
@@ -283,7 +353,7 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
                           SizedBox(
                             height: 3,
                           ),
-                          Text("Social")
+                          Text("Ticket")
                         ],
                       ))),
               InkWell(
@@ -319,7 +389,7 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
                           SizedBox(
                             height: 3,
                           ),
-                          Text("Closed")
+                          Text("Private")
                         ],
                       )))
             ],
@@ -333,21 +403,21 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
           SizedBox(
             height: 20,
           ),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(children: <TextSpan>[
-              TextSpan(
-                  text: "Start a room",
-                  style: TextStyle(color: Colors.black54)),
-              TextSpan(
-                text: " open to everyone",
-                style: TextStyle(color: Colors.black),
-              )
-            ]),
-          ),
-          SizedBox(
-            height: 10,
-          ),
+          // RichText(
+          //   textAlign: TextAlign.center,
+          //   text: TextSpan(children: <TextSpan>[
+          //     TextSpan(
+          //         text: "Start a room",
+          //         style: TextStyle(color: Colors.black54)),
+          //     TextSpan(
+          //       text: " open to everyone",
+          //       style: TextStyle(color: Colors.black),
+          //     )
+          //   ]),
+          // ),
+          // SizedBox(
+          //   height: 10,
+          // ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               primary: Colors.green[800],
@@ -357,7 +427,14 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
                   borderRadius: BorderRadius.circular(32.0)),
               minimumSize: Size(100, 40), //////// HERE
             ),
-            onPressed: () {},
+            onPressed: () async{
+              var pop = showProgress(context, "openning room");
+              var user = await User.newUser(null);
+              var ident = await Crypto.getIdentity();
+              await user.openRoom(ident);
+              pop.dismiss();
+              Navigator.pop(context);
+            },
             child: Text(
               "🎉 Let's go",
               style: TextStyle(fontSize: 18),

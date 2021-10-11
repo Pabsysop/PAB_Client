@@ -1,28 +1,58 @@
+import 'dart:collection';
+import 'dart:typed_data';
+import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/clubwidget.dart';
+import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/widgets/button.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-import 'constant.dart';
 import 'followers_page.dart';
 import 'following_page.dart';
+import 'model/crypto.dart';
 import 'model/user.dart';
 
 // ignore: must_be_immutable
 class OtherUserProfilePage extends StatefulWidget {
-  final User user;
-  bool isFollow = false;
-
-  OtherUserProfilePage(this.user, {Key? key, this.isFollow = false})
-      : super(key: key);
+  final User userProfile;
+  OtherUserProfilePage(this.userProfile, {Key? key}) : super(key: key);
+  ValueNotifier reset = ValueNotifier(false);
 
   @override
   _OtherUserProfilePageState createState() => _OtherUserProfilePageState();
 }
 
-class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
+class _OtherUserProfilePageState extends State<OtherUserProfilePage> with ChangeNotifier{
+  late Identity _identity;
+  Uint8List _avatarBytes = Uint8List(0);
+  bool isFollow = true;
+  HashMap<String, Uint8List> userAvatarBytes = new HashMap();
+  HashMap<String, String> usersName = new HashMap();
+
+  @override
+  void initState(){
+    super.initState();
+
+    getUserEnv();
+
+    widget.reset.addListener(() {
+      widget.userProfile.getAvatarBytes(_identity).then((value){
+        setState(() {
+          _avatarBytes = value;
+        });
+      });
+    });
+  }
+
+  void getUserEnv() {
+    Crypto.getIdentity().then((ident){
+      setState(() {
+        _identity = ident;
+        widget.reset.notifyListeners();
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // var size = MediaQuery.of(context).size;
@@ -52,69 +82,47 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  ProfileImageWidget(widget.user.image, 60),
-                  Spacer(),
-                  Visibility(
-                      visible: widget.isFollow,
-                      child: InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(2.8),
-                            decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: deepBlue, width: 1.5)),
-                            child: Icon(
-                              CupertinoIcons.bell,
-                              size: 20,
-                              color: deepBlue,
-                            )),
-                      )),
-                  SizedBox(
-                    width: 10,
+                  ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
+                    child: Image.memory(_avatarBytes,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.fill,
+                    ),
                   ),
-                  FollowButton(
-                    widget.isFollow,
-                    onTap: (b) => {
-                      setState(() {
-                        widget.isFollow = b;
-                      })
-                    },
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  InkWell(
-                    child: Container(
-                        padding: EdgeInsets.all(2.8),
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: deepBlue, width: 1.5)),
-                        child: Icon(
-                          CupertinoIcons.bell,
-                          size: 20,
-                          color: deepBlue,
-                        )),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("nick:" + widget.userProfile.getName()),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Text("id: " + widget.userProfile.digitalLifeId.toText()),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        FollowButton(
+                          isFollow,
+                          onTap: (b) => {
+                            setState(() {
+                              isFollow = b;
+                            })
+                          },
+                        ),
+                      ]
+                    )
                   )
-                ],
+                ]
               ),
               SizedBox(
-                height: 15,
+                height: 10,
               ),
-              Text(
-                widget.user.name,
-                overflow: TextOverflow.ellipsis,
-              ),
+
               SizedBox(
-                height: 2,
-              ),
-              Text(
-                widget.user.id,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(
-                height: 15,
+                height: 25,
               ),
               Row(
                 children: [
@@ -129,33 +137,34 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    FollowersPage(widget.user.followers)),
+                                    FollowersPage(widget.userProfile.followers)),
                           );
                         },
-                        child: Text(widget.user.followers.length.toString() +
+                        child: Text(widget.userProfile.followers.length.toString() +
                             " Followers")),
                     flex: 1,
                   ),
-                  // SizedBox(
-                  //   width: 45,
-                  // ),
                   Expanded(
                     child: InkWell(
                         splashColor: Colors.transparent,
                         highlightColor: Colors.transparent,
                         hoverColor: Colors.transparent,
                         focusColor: Colors.transparent,
-                        child: Text((widget.user.following.length +
-                                    widget.user.followingClub.length)
+                        child: Text((widget.userProfile.following.length +
+                                    widget.userProfile.followingClub.length)
                                 .toString() +
                             " Following"),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => FollowingPage(
-                                    widget.user.following,
-                                    widget.user.followingClub)),
+                              builder: (context) => FollowingPage(
+                                  widget.userProfile.following,
+                                  widget.userProfile.followingClub,
+                                  userAvatarBytes,
+                                  usersName
+                              )
+                            ),
                           );
                         }),
                     flex: 2,
@@ -165,104 +174,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
               SizedBox(
                 height: 31,
               ),
-              if (widget.user.about.isNotEmpty) Text(widget.user.about),
-              SizedBox(
-                height: 10,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                            padding: EdgeInsets.only(left: 0),
-                            primary: buttonPrimary,
-                            elevation: 0),
-                        onPressed: () {},
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FaIcon(
-                              FontAwesomeIcons.twitter,
-                              size: 15,
-                            ),
-                            SizedBox(
-                              width: 2,
-                            ),
-                            Text(widget.user.twiterId ??
-                                widget.user.twiterId.toString()),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                            padding: EdgeInsets.only(left: 0),
-                            primary: buttonPrimary,
-                            elevation: 0),
-                        onPressed: () {},
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FaIcon(
-                              FontAwesomeIcons.instagram,
-                              size: 15,
-                            ),
-                            SizedBox(
-                              width: 2,
-                            ),
-                            Text(widget.user.instaId ??
-                                widget.user.instaId.toString()),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              if (widget.user.nominee != null)
-                Row(
-                  children: [
-                    ProfileImageWidget(widget.user.nominee!.image, 40),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Joined Feb 24, 2021"),
-                        RichText(
-                          text: TextSpan(
-                            text: 'Nominated by ',
-                            style: TextStyle(color: Colors.black),
-                            children: <TextSpan>[
-                              TextSpan(
-                                  text: widget.user.nominee!.name,
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              SizedBox(
-                height: 40,
-              ),
-              if (widget.user.followingClub.isNotEmpty)
+              if (widget.userProfile.followingClub.isNotEmpty)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -283,15 +195,19 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (_) => ClubWidget(
-                                              widget.user.followingClub[index],
-                                              true)));
+                                              widget.userProfile.followingClub[index],
+                                              true,
+                                              widget.userProfile.followingClub[index].followers
+                                          )
+                                      )
+                                  );
                                 },
                                 child: ProfileImageWidget(
-                                    widget.user.followingClub[index].image,
+                                    clubImage4,
                                     30)),
                           );
                         },
-                        itemCount: widget.user.followingClub.length,
+                        itemCount: widget.userProfile.followingClub.length,
                       ),
                     )
                   ],

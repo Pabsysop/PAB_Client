@@ -5,6 +5,7 @@ class RoomUser {
   bool isMute;
   bool isNew;
   bool isOwner;
-  RoomUser(this.user,
+  String voiceId;
+  RoomUser(this.user, this.voiceId,
       {this.isMute = false, this.isNew = true, this.isOwner = false});
 }
