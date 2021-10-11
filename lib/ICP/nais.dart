@@ -12,7 +12,7 @@ enum WasmType {
 } 
 
 final String naisCanisterId = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-final String replicaUrl = "http://192.168.1.79:8000";
+final String replicaUrl = "http://192.168.1.6:8000";
 
 class NaisMethod {
   static const apply_citizen = "ApplyCitizenship";
@@ -52,7 +52,7 @@ class Nais extends ActorHook {
       Map<String, List<dynamic>> imageArg = {"image_bytes": imageBytes};
       var res = await actor.getFunc(NaisMethod.make_avatar_nft)!([imageArg]);
       if (res != null) {
-        return res[0] as String;
+        return res;
       }
       throw "apply failed due to $res";
     } catch (e) {

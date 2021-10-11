@@ -37,7 +37,7 @@ class _FollowersState extends State<FollowersPage> with ChangeNotifier {
                     context,
                     MaterialPageRoute(
                         builder: (builder) =>
-                            OtherUserProfilePage()));
+                            OtherUserProfilePage(widget.users[index])));
               },
               leading: MemoryImageWidget(widget.users[index].getAvatar(), 40),
               title: Text(

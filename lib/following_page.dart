@@ -42,7 +42,7 @@ class _FollowingState extends State<FollowingPage> with ChangeNotifier {
                   return ListTile(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (b) {
-                        return ClubWidget(widget.clubs[index], true, widget.usersName, widget.userAvatarBytes);
+                        return ClubWidget(widget.clubs[index], true, widget.users);
                       }));
                     },
                     leading: ProfileImageWidget(widget.clubs[index].cover ?? "", 40),
@@ -66,7 +66,7 @@ class _FollowingState extends State<FollowingPage> with ChangeNotifier {
                           context,
                           MaterialPageRoute(
                               builder: (builder) =>
-                                  OtherUserProfilePage()));
+                                  OtherUserProfilePage(widget.users[index])));
                     },
                     leading: MemoryImageWidget(widget.users[index].getAvatar(), 40),
                     title: Text(

@@ -1,8 +1,7 @@
-import 'dart:collection';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:partyboard_client/constant.dart';
 import 'package:partyboard_client/datas/imagesaddress.dart';
+import 'package:partyboard_client/model/user.dart';
 import 'package:partyboard_client/otheruserprofilepage.dart';
 import 'package:partyboard_client/widgets/button.dart';
 import 'package:partyboard_client/widgets/memory_image_widget.dart';
@@ -15,10 +14,9 @@ import 'model/club.dart';
 class ClubWidget extends StatelessWidget {
   final Club club;
   bool isFollowing;
-  final HashMap<String, String> usersName;
-  final HashMap<String, Uint8List> usersAvatarBytes;
+  final List<User> users;
 
-  ClubWidget(this.club, this.isFollowing, this.usersName, this.usersAvatarBytes, {Key? key}) : super(key: key);
+  ClubWidget(this.club, this.isFollowing, this.users, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -135,12 +133,14 @@ class ClubWidget extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (_) =>
-                                  OtherUserProfilePage()));
+                                  OtherUserProfilePage(users[index])
+                          )
+                      );
                     },
                     leading:
-                        MemoryImageWidget(usersAvatarBytes[club.followers[index].digitalLifeId.toText()]??Uint8List(0), 40),
+                        MemoryImageWidget(users[index].getAvatar(), 40),
                     title: Text(
-                      usersName[club.followers[index].digitalLifeId.toText()] ?? "",
+                      users[index].getName(),
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: FollowButton(Random().nextBool()),

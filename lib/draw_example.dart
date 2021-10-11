@@ -1,18 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:draw_your_image/draw_your_image.dart';
 import 'package:flutter/material.dart';
-
-class MyDraw extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MyDrawPage(),
-    );
-  }
-}
 
 class MyDrawPage extends StatefulWidget {
   @override
@@ -22,23 +11,45 @@ class MyDrawPage extends StatefulWidget {
 class _MyDrawPageState extends State<MyDrawPage> {
   var _currentColor = Colors.black;
   var _currentWidth = 4.0;
+  final _controller = DrawController();
+  Uint8List _imageData = Uint8List(0);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('draw_your_image example'),
+        title: Text('DRAW WHAT YOU WANT!'),
+        actions: <Widget>[
+          new TextButton(
+            onPressed: () {
+              _controller.convertToImage();
+            },
+            child: new Text(
+              "Save",
+              style: TextStyle(color: Colors.green, fontSize: 15, )
+            )
+          )
+        ],
       ),
       body: SizedBox(
         height: double.infinity,
         width: double.infinity,
         child: Column(
           children: [
-            const SizedBox(height: 32),
-            const Text('DRAW WHAT YOU WANT!'),
-            const SizedBox(height: 120),
             Expanded(
-              child: Draw(),
+              child: Draw(
+                  controller: _controller,
+                  backgroundColor: Colors.yellow.shade50,
+                  strokeColor: _currentColor,
+                  strokeWidth: _currentWidth,
+                  isErasing: false,
+                  onConvertImage: (imageData) {
+                    setState(() {
+                      _imageData = imageData;
+                    });
+                    Navigator.pop(context, _imageData);
+                  }                
+              ),
             ),
             const SizedBox(height: 32),
             Wrap(

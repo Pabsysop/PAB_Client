@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:agent_dart/agent_dart.dart';
 import 'agent_factory.dart';
 
@@ -6,7 +8,7 @@ class NFTMethod {
   static const tokenByIndex = "tokenByIndex";
 }
 
-Map<String, CType<dynamic>> ErrParam = 
+Map<String, CType<dynamic>> errParam = 
  {
    "AuthorizedPrincipalLimitReached": IDL.Nat,
    "Immutable": IDL.Null,
@@ -14,21 +16,20 @@ Map<String, CType<dynamic>> ErrParam =
    "NotFound": IDL.Null,
    "Unauthorized": IDL.Null,
  };
- Map<String, dynamic>  Chunk = 
+ Map<String, dynamic>  chunk = 
  {
    "data": IDL.Vec(IDL.Nat8),
    "nextPage": IDL.Opt(IDL.Nat),
    "totalPages": IDL.Nat
  };
- Map<String, CType<dynamic>> PayloadResult = 
+ Map<String, CType<dynamic>> payloadResult = 
  {
-   "Chunk": IDL.Record(Chunk),
+   "Chunk": IDL.Record(chunk),
    "Complete": IDL.Vec(IDL.Nat8)
  };
- Map<String, CType<dynamic>>  Value = 
+ Map<String, CType<dynamic>>  value = 
 {
    "Bool": IDL.Bool,
-   "Class": IDL.Vec(IDL.Record(Property)),
    "Empty": IDL.Empty,
    "Float": IDL.Float64,
    "Int": IDL.Int32,
@@ -36,23 +37,23 @@ Map<String, CType<dynamic>> ErrParam =
    "Principal": IDL.Principal,
    "Text": IDL.Text
  };
- Map<String, dynamic> Property =
+ Map<String, dynamic> property =
 {
    "immutable": IDL.Bool,
    "name": IDL.Text,
-   "value": IDL.Variant(Value)
+   "value": IDL.Variant(value)
  };
- Map<String, dynamic> PublicToken = 
+ Map<String, dynamic> publicToken = 
 {
    "contentType": IDL.Text,
-   "createdAt": IDL.Nat,
+   "createdAt": IDL.Int,
    "id": IDL.Text,
    "owner": IDL.Principal,
-   "payload": IDL.Variant(PayloadResult),
-   "properties": IDL.Vec(IDL.Record(Property))
+   "payload": IDL.Variant(payloadResult),
+   "properties": IDL.Vec(IDL.Record(property))
  };
 final nftIdl = IDL.Service({
-  NFTMethod.tokenByIndex: IDL.Func([IDL.Text], [IDL.Variant({"err": IDL.Variant(ErrParam),"ok": IDL.Record(PublicToken)})], ['query']),
+  NFTMethod.tokenByIndex: IDL.Func([IDL.Text], [IDL.Variant({"err": IDL.Variant(errParam),"ok": IDL.Record(publicToken)})], ['update']),
 });
 
 class NFTCanister extends ActorHook {
@@ -64,11 +65,12 @@ class NFTCanister extends ActorHook {
     actor = _actor;
   }
 
-  Future<Map<String, Map<String, dynamic>>> tokenByIndex(String idx) async {
+  Future<Uint8List> tokenByIndex(String idx) async {
     try {
       var res = await actor.getFunc(NFTMethod.tokenByIndex)!([idx]);
       if (res != null) {
-        return res[0] as Map<String, Map<String, dynamic>>;
+        List<int> payload = res["ok"]["payload"]["Complete"].cast<int>();
+        return Uint8List.fromList(payload);
       }
       throw "apply failed due to $res";
     } catch (e) {

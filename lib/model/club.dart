@@ -2,6 +2,7 @@ import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/ICP/agent_factory.dart';
 import 'package:partyboard_client/ICP/board.dart';
 import 'package:partyboard_client/ICP/nais.dart';
+import 'package:partyboard_client/model/room.dart';
 import 'package:partyboard_client/model/user.dart';
 
 class Club {
@@ -18,7 +19,7 @@ class Club {
     return Club(boardId);
   }
 
-  Future<List> myMeta(Identity? ident) async {
+  Future<List<Room>> myMeta(Identity? ident) async {
     if (_boardClient == null){
       _boardClient = NaisAgentFactory.create(
             canisterId: boardId.toText(),
@@ -33,7 +34,41 @@ class Club {
     this.cover = boardMeta[1];
     this.about = boardMeta[2];
 
-    return res[1];
+    List<Room> rooms = [];
+    for (var r in res[1]) {
+        Room room = Room(r["id"], r["title"], r["owner"], boardId);
+        room.moderators.addAll(r["moderators"]);
+        room.speakers.addAll(r["speakers"]);
+        room.audiens.addAll(r["audiens"]);
+        room.cover = this.cover;
+        rooms.add(room);
+    }
+
+    return rooms;
+  }
+
+  Future<String> joinRoom(Identity? ident, String roomId) async {
+    if (_boardClient == null){
+      _boardClient = NaisAgentFactory.create(
+            canisterId: boardId.toText(),
+            url: replicaUrl,
+            idl: boardIdl,
+            identity: ident,
+      ).hook(Board());
+    }
+    return await _boardClient!.joinRoom(roomId);
+  }
+
+    Future<void> leaveRoom(Identity? ident, String roomId) async {
+    if (_boardClient == null){
+      _boardClient = NaisAgentFactory.create(
+            canisterId: boardId.toText(),
+            url: replicaUrl,
+            idl: boardIdl,
+            identity: ident,
+      ).hook(Board());
+    }
+    await _boardClient!.leaveRoom(roomId);
   }
 
   setFollowers(List<User> followers) {

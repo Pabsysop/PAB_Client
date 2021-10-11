@@ -16,7 +16,7 @@ class RoomUserWidget extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.push(context,
-            MaterialPageRoute(builder: (_) => OtherUserProfilePage()));
+            MaterialPageRoute(builder: (_) => OtherUserProfilePage(user.user)));
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

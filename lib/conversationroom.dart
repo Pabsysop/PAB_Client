@@ -3,7 +3,7 @@ import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/datas/imagesaddress.dart';
 import 'package:partyboard_client/model/room.dart';
 import 'package:partyboard_client/model/roomuser.dart';
-import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/otheruserprofilepage.dart';
 import 'package:partyboard_client/roomuserwidget.dart';
 import 'package:partyboard_client/widgets/profile_image_widget.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,14 +16,16 @@ import 'model/crypto.dart';
 import 'model/user.dart';
 
 const appId = "c2a463d954a8439196fffbbae156b8f1";
-const token = "";
+const token = "006c2a463d954a8439196fffbbae156b8f1IABGjGhVktFmCDuC6ODKm3PpequlPeUeIKuwtq/pUGyfMYJpNZYAAAAAEAAc0c8od2ZlYQEAAQB3ZmVh";
 
 // ignore: must_be_immutable
 class ConversationRoom extends StatefulWidget {
   final Room inRoom;
+  final String clubName;
+
   ValueNotifier reset = ValueNotifier(false);
 
-  ConversationRoom(this.inRoom);
+  ConversationRoom(this.inRoom, this.clubName, {Key? key}) : super(key: key);
 
   @override
   _ConversationRoomState createState() => _ConversationRoomState();
@@ -34,8 +36,19 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
   late Room room;
   late Identity _identity;
   late User _myDigitalLife;
-  late List<RoomUser> _users;
-  late String clubName;
+  List<RoomUser> _users = [];
+  List<RoomUser> _audiens = [];
+  List<RoomUser> _speakers = [];
+  late RoomUser _owner;
+
+  void listenFor(User user, List<RoomUser> belongTo){
+    var ru = RoomUser(user, user.digitalLifeId.toText());
+    user.addListener(() {
+      setState(() {
+        belongTo.add(ru);
+      });
+    });
+  }
 
   @override
   void initState() {
@@ -43,18 +56,45 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
 
     room = widget.inRoom;
 
+    _owner = RoomUser(User(room.owner), room.owner.toText());
+
     widget.reset.addListener(() {
       debugPrint("prefs got ok");
+
+      for (var user in room.speakersUsers) {
+        listenFor(user, _speakers);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+      }
+      for (var user in room.audiensUsers) {
+        listenFor(user, _audiens);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+      }
+
+      var owner = RoomUser(User(room.owner), room.owner.toText());
+      owner.user.addListener(() {
+        setState(() {
+          _owner = owner;
+        });
+      });
+      owner.user.retrieveName(_identity);
+
       initialize();
+
     });
+
+    getUserEnv();
+
   }
 
  @override
  void dispose() {
-  //  _users.clear();
-  //  _engine.leaveChannel();
-  //  _engine.destroy();
    super.dispose();
+
+   _users.clear();
+   _engine.leaveChannel();
+   _engine.destroy();
  }
 
   void getUserEnv() {
@@ -83,6 +123,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     _addAgoraEventHandlers();
 
     var channelName = sha256.convert(utf8.encode(room.id+room.clubId.toText())).toString();
+
     await _engine.joinChannelWithUserAccount(token, channelName, _myDigitalLife.digitalLifeId.toText());
   }
   
@@ -102,20 +143,14 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
   void _addAgoraEventHandlers() {
     _engine.setEventHandler(RtcEngineEventHandler(
       error: (code) {
-        setState(() {
-          print('onError: $code');
-        });
+        print('onError: $code');
       },
       joinChannelSuccess: (channel, uid, elapsed) {
         print('onJoinChannel: $channel, uid: $uid');
-        RoomUser u = RoomUser(User(Principal.fromText(uid as String)), uid as String);
-        u.user.addListener(() {
-          setState(() {
-            _users.add(u);
-          });
-        });
-        u.user.retrieveAvatarBytes(_identity);
-        u.user.retrieveName(_identity);
+        var user = User(Principal.fromText(uid as String));
+        listenFor(user, _audiens);
+        user.retrieveName(_identity);
+        user.retrieveAvatarBytes(_identity);
       },
       leaveChannel: (stats) {
         setState(() {
@@ -125,14 +160,10 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       },
       userJoined: (uid, elapsed) {
         print('userJoined: $uid');
-        RoomUser u = RoomUser(User(Principal.fromText(uid as String)), uid as String);
-        u.user.addListener(() {
-          setState(() {
-            _users.add(u);
-          });
-        });
-        u.user.retrieveAvatarBytes(_identity);
-        u.user.retrieveName(_identity);
+        var user = User(Principal.fromText(uid as String));
+        listenFor(user, _audiens);
+        user.retrieveName(_identity);
+        user.retrieveAvatarBytes(_identity);
       },
     ));
   }
@@ -142,18 +173,18 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 110,
-        leading: TextButton.icon(
+        leading: SingleChildScrollView(scrollDirection:Axis.horizontal, child: TextButton.icon(
             onPressed: () => {Navigator.pop(context)},
             style: TextButton.styleFrom(primary: Colors.black),
             icon: Icon(CupertinoIcons.chevron_down),
-            label: Text("Hallway")),
+            label: Text(_owner.user.getName())),
+        ),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(CupertinoIcons.doc)),
           IconButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfilePage()),
+                  MaterialPageRoute(builder: (context) => OtherUserProfilePage(_users[0].user)),
                 );
               },
               icon: ProfileImageWidget(clubImage1, 30)),
@@ -175,7 +206,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(clubName.toUpperCase() + ' 🏡',
+                      Text(widget.clubName.toUpperCase() + ' 🏡',
                           style: Theme.of(context)
                               .textTheme
                               .headline6!
@@ -200,14 +231,14 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ..._users.map((e) => RoomUserWidget(e))
+                  ..._speakers.map((e) => RoomUserWidget(e))
                 ],
               ),
             ),
             SliverToBoxAdapter(
               child: Text(
-                "Followed by the speakers",
-                style: TextStyle(fontSize: 14, color: Colors.grey[350]),
+                "audiens",
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ),
             SliverPadding(
@@ -216,14 +247,14 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ...room.speakers.map((e) => RoomUserWidget(RoomUser(User(e), e.toText())))
+                  ..._audiens.map((u) => RoomUserWidget(u))
                 ],
               ),
             ),
             SliverToBoxAdapter(
               child: Text(
                 "Others in the room",
-                style: TextStyle(fontSize: 14, color: Colors.grey[350]),
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ),
             SliverPadding(
@@ -232,7 +263,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                 crossAxisCount: 3,
                 crossAxisSpacing: 30,
                 children: [
-                  ...room.audiens.map((e) => RoomUserWidget(RoomUser(User(e), e.toText())))
+                  ..._users.map((u) => RoomUserWidget(u))
                 ],
               ),
             ),
@@ -273,7 +304,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
             onTap: () {},
             child: Container(
               padding: EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.add),
+              child: Icon(CupertinoIcons.hand_thumbsup),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.grey[200],

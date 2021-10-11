@@ -6,25 +6,12 @@ import 'package:partyboard_client/ICP/nais.dart';
 import 'package:partyboard_client/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_hud/flutter_hud.dart';
+import 'package:partyboard_client/utils.dart';
 import 'package:pem/pem.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'constant.dart';
 
 final TextEditingController myController = TextEditingController();
-PopupHUD showProgress(BuildContext context){
-  final popup = PopupHUD(
-    context,
-    hud: HUD(
-      label: 'Register PAB Metaverse\n Citizen Visa NFT',
-      detailLabel: 'applying..',
-    ),
-  );
-
-  popup.show();
-
-  return popup;
-}
 
 class CodePage extends StatelessWidget {
   CodePage({Key? key}) : super(key: key);
@@ -93,7 +80,7 @@ class CodePage extends StatelessWidget {
                   minimumSize: Size(150, 50), //////// HERE
                 ),
                 onPressed: () async {
-                  var popup = showProgress(context);
+                  var popup = showProgress(context, "PartyBoard Citizen Apply");
                   Uint8List seed = myController.text.substring(0, 64).toU8a();
                   var _identity = Ed25519KeyIdentity.generate(seed);
                   popup.setValue(0.2);

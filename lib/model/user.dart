@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:agent_dart/agent_dart.dart';
@@ -39,6 +40,18 @@ class User with ChangeNotifier {
     });
   }
 
+  Future<void> retrieveFollows(Identity ident) async{
+    var follows = await myFollows(ident);
+    for (var f in follows["follower"] ?? []) {
+      var u = User(f[0]);
+      followers.add(u);
+    }
+    for (var f in follows["following"] ?? []) {
+      var u = User(f[0]);
+      following.add(u);
+    }
+  }
+
   void retrieveName(Identity ident){
     myName(ident).then((value){
       name = value;
@@ -64,11 +77,13 @@ class User with ChangeNotifier {
             identity: ident,
       ).hook(Anderson());
     }
-    var nftIdx = await _anderson!.myAvatar();
+    HashMap nftinfo = await _anderson!.myAvatar();
+    String nftIdx = nftinfo["id"];
+    String nftSrc = nftinfo["src"];
 
     var prefs = await SharedPreferences.getInstance();
     String? avatarCanisterId = prefs.getString(avatarPrefsKey);
-    if (avatarCanisterId == null) {
+    if (avatarCanisterId == null || avatarCanisterId.isEmpty) {
       var nais = NaisAgentFactory.create(
             canisterId: naisCanisterId,
             url: replicaUrl,
@@ -76,17 +91,34 @@ class User with ChangeNotifier {
             identity: ident,
       ).hook(Nais());
       var hi = await nais.hi();
-      avatarCanisterId = hi.split(';').last;
+      avatarCanisterId = hi.split(';').elementAt(hi.split(';').length - 2).trim();
       prefs.setString(avatarPrefsKey, avatarCanisterId);
     }
     var nft = NaisAgentFactory.create(
-          canisterId: avatarCanisterId,
+          canisterId: avatarCanisterId.trim(),
           url: replicaUrl,
           idl: nftIdl,
           identity: ident,
     ).hook(NFTCanister());
-    var nftInfo = await nft.tokenByIndex(nftIdx);
-    return nftInfo["payload"]!["Complete"];
+    var payload = await nft.tokenByIndex(nftIdx);
+    return payload;
+  }
+
+  void getRoomUserProfile(List<Room> rooms, Identity ident){
+    for (Room room in rooms){
+      for (var userid in room.speakers) {
+        var user = User(userid);
+        user.retrieveAvatarBytes(ident);
+        user.retrieveName(ident);
+        room.speakersUsers.add(user);
+      }
+      for (var userid in room.audiens) {
+        var user = User(userid);
+        user.retrieveAvatarBytes(ident);
+        user.retrieveName(ident);
+        room.audiensUsers.add(user);
+      }
+    }
   }
 
   Future<List> loadRoomList(Identity ident) async{
@@ -102,28 +134,19 @@ class User with ChangeNotifier {
       ).hook(Anderson());
     }
 
-    _anderson!.talk().then((boards) {
-      for (var board in boards) {
-        var club = Club.newClub(board);
-        club.myMeta(ident).then((rs){
-          List<Room> rooms = [];
-          for (var r in rs) {
-              Room room = Room(r.id, r.title, r.owner, board);
-              room.moderators.addAll(r.moderators);
-              room.speakers.addAll(r.speakers);
-              room.audiens.addAll(r.audiens);
-              room.cover = club.cover;
-              rooms.add(room);
-          }
-          userRooms.addAll(rooms);
-        });
-        userClubs.add(club);
-      }
-    });
+    var boards = await _anderson!.talk();
+    for (var board in boards) {
+      var club = Club.newClub(board);
+      var rooms = await club.myMeta(ident);
+      userRooms.addAll(rooms);
+      userClubs.add(club);
+      getRoomUserProfile(rooms, ident);
+    }
+    
     return [userClubs, userRooms];
   }
 
-  void openRoom(Identity ident){
+  Future<void> openRoom(Identity ident) async{
     if (_anderson == null){
       _anderson = NaisAgentFactory.create(
             canisterId: digitalLifeId.toText(),
@@ -132,7 +155,7 @@ class User with ChangeNotifier {
             identity: ident,
       ).hook(Anderson());
     }
-    _anderson!.openRoom("anonymous room", null);
+    await _anderson!.openRoom("anonymous room");
   }
 
   Future<String> myName(Identity? ident) async{
@@ -145,6 +168,18 @@ class User with ChangeNotifier {
       ).hook(Anderson());
     }
     return await _anderson!.myName();
+  }
+
+  Future<HashMap<String, List>> myFollows(Identity? ident) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    return await _anderson!.myFollows();
   }
 
   void setFollowers(List<User> followers) {

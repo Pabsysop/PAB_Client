@@ -1,31 +1,17 @@
-import 'dart:collection';
 import 'dart:typed_data';
-
 import 'package:agent_dart/agent/auth.dart';
 import 'package:agent_dart/agent_dart.dart';
-import 'package:flutter_hud/flutter_hud.dart';
 import 'package:partyboard_client/constant.dart';
 import 'package:partyboard_client/conversationroom.dart';
 import 'package:partyboard_client/model/crypto.dart';
 import 'package:partyboard_client/profile_page.dart';
+import 'package:partyboard_client/utils.dart';
 import 'package:partyboard_client/widgets/room_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'model/club.dart';
 import 'model/room.dart';
 import 'model/user.dart';
-
-PopupHUD showProgress(BuildContext context){
-  final popup = PopupHUD(
-    context,
-    hud: HUD(
-      label: 'Register a room with board xxx',
-      detailLabel: 'waiting...',
-    ),
-  );
-  popup.show();
-  return popup;
-}
 
 
 // ignore: must_be_immutable
@@ -42,8 +28,26 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
   late User _myDigitalLife;
   List<Club> _clubs = [];
   List<Room> _rooms = [];
-  HashMap<String, Uint8List> userAvatarBytes = new HashMap();
-  HashMap<String, String> usersName = new HashMap();
+  Uint8List _avatarBytes = Uint8List(0);
+
+  void getRooms(){
+    _myDigitalLife.loadRoomList(_identity).then((value){
+      setState(() {
+        _clubs.addAll(value[0]);
+        _rooms.addAll(value[1]);
+      });
+    });
+    _myDigitalLife.retrieveFollows(_identity).then((value){
+      for (var user in _myDigitalLife.following) {
+        user.loadRoomList(_identity).then((value){
+          setState(() {
+            _clubs.addAll(value[0]);
+            _rooms.addAll(value[1]);
+          });
+        });
+      }
+    });
+  }
 
   @override
   void initState(){
@@ -53,53 +57,12 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
 
     widget.reset.addListener(() {
       debugPrint("prefs got ok");
-      _myDigitalLife.loadRoomList(_identity).then((value){
-        setState(() {
-          _clubs = value[0];
-          _rooms = value[1];
-        });
-        for (var club in _clubs) {
-          for (var user in club.followers) {
-            user.addListener(() {
-              setState(() {
-                userAvatarBytes[user.digitalLifeId.toText()] = user.avatarBytes ?? Uint8List(0);
-                usersName[user.digitalLifeId.toText()] = user.name ?? "";
-              });
-            });
-            user.retrieveAvatarBytes(_identity);
-            user.retrieveName(_identity);
-          }
-        }
-        for (var room in _rooms){
-          for (var userid in room.speakers) {
-            var user = User(userid);
-            user.addListener(() {
-              setState(() {
-                userAvatarBytes[user.digitalLifeId.toText()] = user.avatarBytes ?? Uint8List(0);
-                usersName[user.digitalLifeId.toText()] = user.name ?? "";
-              });
-            });
-            user.retrieveAvatarBytes(_identity);
-            user.retrieveName(_identity);
-          }
-        }
-        for (var room in _rooms){
-          for (var userid in room.audiens) {
-            var user = User(userid);
-            user.addListener(() {
-              setState(() {
-                userAvatarBytes[user.digitalLifeId.toText()] = user.avatarBytes ?? Uint8List(0);
-                usersName[user.digitalLifeId.toText()] = user.name ?? "";
-              });
-            });
-            user.retrieveAvatarBytes(_identity);
-            user.retrieveName(_identity);
-          }
-        }
-      });
+
+      getRooms();
+
       _myDigitalLife.getAvatarBytes(_identity).then((value){
         setState(() {
-          userAvatarBytes[_myDigitalLife.digitalLifeId.toText()] = value;
+          _avatarBytes = value;
         });
       });
     });
@@ -117,7 +80,6 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
   void getUserEnv() {
 
     Crypto.getIdentity().then((ident){
-
       setState(() {
         _identity = ident;
       });
@@ -139,7 +101,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
         leading: IconButton(
           icon: ClipRRect(
             borderRadius: BorderRadius.all(Radius.circular(50 / 2.2)),
-            child: Image.memory(userAvatarBytes[_myDigitalLife.digitalLifeId.toText()]!,
+            child: Image.memory(_avatarBytes,
               width: 50,
               height: 50,
               fit: BoxFit.fill,
@@ -175,7 +137,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
             onRefresh: () {
               return Future(() {
                 Future.delayed(Duration(seconds: 4));
-                setState(() {});
+                getRooms();
               });
             },
             child: Padding(
@@ -184,10 +146,15 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
                 children: [
                   ..._rooms.map((r) => InkWell(
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (c) => ConversationRoom(r)));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (c) => ConversationRoom(r, getClubnameById(r.clubId))
+                          )
+                        );
                       },
-                      child: RoomWidget(r, getClubnameById(r.clubId), userAvatarBytes.values.toList(), usersName.values.toList()))),
+                      child: RoomWidget(r, getClubnameById(r.clubId), _identity)
+                    )
+                  ),
                 ],
               ),
             ),
@@ -461,10 +428,12 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
               minimumSize: Size(100, 40), //////// HERE
             ),
             onPressed: () async{
-              showProgress(context);
+              var pop = showProgress(context, "openning room");
               var user = await User.newUser(null);
               var ident = await Crypto.getIdentity();
-              user.openRoom(ident);
+              await user.openRoom(ident);
+              pop.dismiss();
+              Navigator.pop(context);
             },
             child: Text(
               "🎉 Let's go",

@@ -25,33 +25,31 @@ class ProfilePage extends StatefulWidget{
 class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
   late Identity _identity;
   late User _myDigitalLife;
+  Uint8List _avatarBytes = Uint8List(0);
+  String _myName = "";
   HashMap<String, Uint8List> userAvatarBytes = new HashMap();
   HashMap<String, String> usersName = new HashMap();
 
   @override
   void initState(){
     super.initState();
+
     getUserEnv();
 
     widget.reset.addListener(() {
       debugPrint("prefs got ok");
-      _myDigitalLife.loadRoomList(_identity).then((value){
-        var all = _myDigitalLife.followers;
-        all.addAll(_myDigitalLife.following);
-          for (var user in all) {
-            user.addListener(() {
-              setState(() {
-                userAvatarBytes[user.digitalLifeId.toText()] = user.avatarBytes ?? Uint8List(0);
-                usersName[user.digitalLifeId.toText()] = user.name ?? "";
-              });
-            });
-            user.retrieveAvatarBytes(_identity);
-            user.retrieveName(_identity);
-          }
-      });
+
       _myDigitalLife.getAvatarBytes(_identity).then((value){
         setState(() {
           userAvatarBytes[_myDigitalLife.digitalLifeId.toText()] = value;
+          _avatarBytes = value;
+        });
+      });
+
+      _myDigitalLife.myName(_identity).then((value){
+        setState(() {
+          _myName = value;
+          usersName[_myDigitalLife.digitalLifeId.toText()] = value;
         });
       });
     });
@@ -87,25 +85,53 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
-                child: Image.asset(
-                  "assets/images/avatar-3.jpg",
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.fill,
-                ),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
+                    child: Image.memory(_avatarBytes,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("nick:" + _myName),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Text("id: " + _myDigitalLife.digitalLifeId.toText()),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Text("[incentives]"),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 5,
+                              ),
+                              Text("likes: 10PAB" ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              Text("Minings: 10PAB"),
+                            ]
+                          )
+                        )
+                      ]
+                    )
+                  )
+                ]
               ),
               SizedBox(
-                height: 15,
-              ),
-              Text("@pab##0"),
-              SizedBox(
-                height: 2,
-              ),
-              Text(_myDigitalLife.digitalLifeId.toText()),
-              SizedBox(
-                height: 15,
+                height: 40,
               ),
               Row(
                 children: [
@@ -158,14 +184,14 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
               SizedBox(
                 height: 31,
               ),
-              Text(no_description_hint),
+              Text("Description: " + no_description_hint),
               SizedBox(
                 height: 20,
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Member of"),
+                  Text("Boards"),
                   SizedBox(
                     height: 10,
                   ),
@@ -183,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                                       MaterialPageRoute(
                                           builder: (_) => ClubWidget(
                                               _myDigitalLife.followingClub[index], true,
-                                              usersName, userAvatarBytes
+                                              _myDigitalLife.followingClub[index].followers
                                           )
                                       )
                                   );

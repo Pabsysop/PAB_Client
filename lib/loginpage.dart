@@ -12,10 +12,12 @@ import 'package:partyboard_client/homepage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:partyboard_client/utils.dart';
 import 'package:pem/pem.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ICP/agent_factory.dart';
 import 'package:flutter/services.dart' show rootBundle;
+
 
 class LoginPage extends StatefulWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -25,11 +27,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  double size = 256;
+  double size = 220;
   Identity? _identity;
   Principal? _myLife;
   bool enableNext = false;
-  late Uint8List _avatarBytes;
+  Uint8List _avatarBytes = Uint8List(0);
+  String _defaultAvatar = "assets/images/avatar-1.jpg";
+  String _avatarDesc = "not NFT Avatar";
   
   @override
   void initState(){
@@ -53,16 +57,16 @@ class _LoginPageState extends State<LoginPage> {
           _identity = Ed25519KeyIdentity.fromSecretKey(Uint8List.fromList(pkBytes));
         });
       }
+      if (_myLife != null && _identity != null){
+        setState(() {
+          enableNext = true;
+        });
+      }
     });
-    if (_myLife != null && _identity != null){
-      setState(() {
-        enableNext = true;
-      });
-    }
   }
 
   void setImageBytes(){
-    rootBundle.load("assets/images/avatar-3.jpg").then(
+    rootBundle.load(_defaultAvatar).then(
       (contents){
         setState(() {
           _avatarBytes = contents.buffer.asUint8List();
@@ -77,19 +81,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> upAvatar(String id) {
+  Future<void> upAvatar(String id, String src) {
     var anderson = NaisAgentFactory.create(
           canisterId: _myLife!.toText(),
           url: replicaUrl,
           idl: andersonIdl,
           identity: _identity,
     ).hook(Anderson());
-    return anderson.upAvatar(id);
+    return anderson.upAvatar(id, src);
   }
 
-  void _openFileExplorer() async {
-
-    try {
+  Future<void> requestAvatarNFT(Uint8List contents, BuildContext context) async{
       var nais = NaisAgentFactory.create(
             canisterId: naisCanisterId,
             url: replicaUrl,
@@ -97,17 +99,28 @@ class _LoginPageState extends State<LoginPage> {
             identity: _identity,
       ).hook(Nais());
 
+      var pop = showProgress(context, "upload nft data");
+      var avatarIdx = await nais.makeAvatarNFT(contents);
+      await upAvatar(avatarIdx, "DFINITY");
+      setState(() {
+        _avatarDesc = "NFT Avatar #" + avatarIdx;
+      });
+      pop.dismiss();
+  }
+
+  void _openFileExplorer(BuildContext context) async {
+    try {
       var paths = (await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
         onFileLoading: (FilePickerStatus status) => print(status),
         allowedExtensions: null,
       ))?.files;
-
       var fd = File(paths!.single.path!);
       var contents = await fd.readAsBytes();
-      var avatarIdx = await nais.makeAvatarNFT(contents);
-      await upAvatar(avatarIdx);
+
+      await requestAvatarNFT(contents, context);
+
       setState(() {
         _avatarBytes = contents;
       });
@@ -143,31 +156,45 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(
                     height: 15,
                   ),
+                  Text(_avatarDesc),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: Icon(Icons.search),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async{
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => AvatarsPage()),
                           );
+                          if (result != null){
+                            setState(() {
+                              _defaultAvatar = result;
+                            });
+                            setImageBytes();
+                            await upAvatar(_defaultAvatar, "LOCAL");
+                          }
                         }
                       ),
                       IconButton(
                         icon: Icon(Icons.edit),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final bytes = await Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => MyDraw()),
+                            MaterialPageRoute(builder: (context) => MyDrawPage()),
                           );
+                          if (bytes != null){
+                            setState(() {
+                              _avatarBytes = bytes;
+                            });
+                            await requestAvatarNFT(bytes, context);
+                          }
                         }
                       ),
                       IconButton(
                         icon: Icon(Icons.upload),
                         onPressed: (){
-                          _openFileExplorer();
+                          _openFileExplorer(context);
                         }
                       ),
                     ],

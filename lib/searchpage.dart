@@ -88,7 +88,7 @@ class _SearchPageState extends State<SearchPage> {
                             context,
                             MaterialPageRoute(
                                 builder: (builder) =>
-                                    OtherUserProfilePage()));
+                                    OtherUserProfilePage(tempUsers[index])));
                       },
                       contentPadding: EdgeInsets.zero,
                       leading: ProfileImageWidget(clubImage2, 40),

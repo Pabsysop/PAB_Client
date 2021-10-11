@@ -1,15 +1,51 @@
-import 'dart:typed_data';
+import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/model/room.dart';
+import 'package:partyboard_client/model/user.dart';
 import 'package:partyboard_client/widgets/memory_image_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class RoomWidget extends StatelessWidget {
+// ignore: must_be_immutable
+class RoomWidget extends StatefulWidget {
   final Room room;
   final String clubName;
-  final List<Uint8List> usersAvatarBytes;
-  final List<String> usersName;
-  const RoomWidget(this.room, this.clubName, this.usersAvatarBytes, this.usersName, {Key? key}) : super(key: key);
+  final Identity _identity;
+
+  ValueNotifier reset = ValueNotifier(false);
+
+  RoomWidget(this.room, this.clubName, this._identity, {Key? key}) : super(key: key);
+
+  @override
+  _RoomWidgetState createState() => _RoomWidgetState();
+}
+
+class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
+  List<User> _audiens = [];
+  List<User> _speakers = [];
+
+
+  void listenFor(User user, List<User> belongTo){
+    user.addListener(() {
+      setState(() {
+        belongTo.add(user);
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    for (var user in widget.room.speakersUsers) {
+      listenFor(user, _speakers);
+      user.retrieveAvatarBytes(widget._identity);
+    }
+    for (var user in widget.room.audiensUsers) {
+      listenFor(user, _audiens);
+      user.retrieveName(widget._identity);
+    }
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +56,12 @@ class RoomWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(clubName + " 🏡"),
+            Text(widget.clubName + " 🏡"),
             SizedBox(
               height: 5,
             ),
             Text(
-              room.title,
+              widget.room.title,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(
@@ -41,14 +77,13 @@ class RoomWidget extends StatelessWidget {
                     height: 100,
                     child: Stack(
                       children: [
-                        Positioned(
-                            left: 28,
-                            top: 28,
-                            child: MemoryImageWidget(usersAvatarBytes[0], 50)),
-                        Positioned(
-                            left: 0,
-                            top: 0,
-                            child: MemoryImageWidget(usersAvatarBytes[1], 50)),
+                        ..._speakers.map((u) =>
+                          Positioned(
+                              left: 1,
+                              top: 5,
+                              child: MemoryImageWidget(u.getAvatar(), 30)
+                          ),
+                        )
                       ],
                     ),
                   ),
@@ -59,14 +94,14 @@ class RoomWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ...usersName.take(5).map((name) => Row(
+                        ..._audiens.map((u) => Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Flexible(
                                   child: Text(
-                                    name,
+                                    u.getName(),
                                   ),
                                 ),
                                 SizedBox(
@@ -85,7 +120,7 @@ class RoomWidget extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              "208",
+                              "0",
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             Icon(
@@ -98,7 +133,7 @@ class RoomWidget extends StatelessWidget {
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             Text(
-                              "32",
+                              "0",
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             Icon(
