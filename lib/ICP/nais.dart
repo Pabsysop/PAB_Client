@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:agent_dart/agent_dart.dart';
 import 'agent_factory.dart';
 
@@ -11,8 +10,9 @@ enum WasmType {
     VisaNFT
 } 
 
-final String naisCanisterId = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-final String replicaUrl = "http://192.168.1.6:8000";
+final String naisCanisterId = "ef6qy-4iaaa-aaaak-aaasa-cai";
+// final String replicaUrl = "http://192.168.1.6:8000";
+final String replicaUrl = "https://ic0.app/";
 
 class NaisMethod {
   static const apply_citizen = "ApplyCitizenship";

@@ -24,4 +24,3 @@ class Room {
   Room(this.id, this.title, this.owner, this.clubId);
 
 }
-
