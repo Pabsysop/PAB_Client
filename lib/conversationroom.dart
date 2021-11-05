@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/datas/imagesaddress.dart';
+import 'package:partyboard_client/model/agora_token.dart';
 import 'package:partyboard_client/model/room.dart';
 import 'package:partyboard_client/model/roomuser.dart';
 import 'package:partyboard_client/otheruserprofilepage.dart';
@@ -16,7 +17,6 @@ import 'model/crypto.dart';
 import 'model/user.dart';
 
 const appId = "c2a463d954a8439196fffbbae156b8f1";
-const token = "006c2a463d954a8439196fffbbae156b8f1IABGjGhVktFmCDuC6ODKm3PpequlPeUeIKuwtq/pUGyfMYJpNZYAAAAAEAAc0c8od2ZlYQEAAQB3ZmVh";
 
 // ignore: must_be_immutable
 class ConversationRoom extends StatefulWidget {
@@ -124,7 +124,9 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
 
     var channelName = sha256.convert(utf8.encode(room.id+room.clubId.toText())).toString();
 
-    await _engine.joinChannelWithUserAccount(token, channelName, _myDigitalLife.digitalLifeId.toText());
+    var token = await AgoraRTMToken.fetchAlbum(_myDigitalLife.digitalLifeId.toText());
+
+    await _engine.joinChannelWithUserAccount(token.rtmToken, channelName, _myDigitalLife.digitalLifeId.toText());
   }
   
   Future<void> _initAgoraRtcEngine() async {
