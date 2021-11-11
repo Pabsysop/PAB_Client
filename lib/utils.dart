@@ -1,8 +1,11 @@
+import 'package:agent_dart/agent_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_hud/flutter_hud.dart';
 
 import 'constant.dart';
+import 'model/club.dart';
+import 'model/room.dart';
 
 PopupHUD showProgress(BuildContext context, String title){
   final popup = PopupHUD(
@@ -71,3 +74,43 @@ void onLoading(BuildContext context) {
   });
 }
 
+TextEditingController _roomTitleEditFieldController = TextEditingController();
+TextEditingController _roomDescEditFieldController = TextEditingController();
+Future<dynamic> roomEditDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('please input room title'),
+          content:Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                TextField(
+                  controller: _roomTitleEditFieldController,
+                  decoration: InputDecoration(hintText: "title"),
+                ),
+                TextField(
+                  controller: _roomDescEditFieldController,
+                  decoration: InputDecoration(hintText: "description"),
+                )
+            ]
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('CANCEL'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.pop(context, [_roomTitleEditFieldController.text, _roomDescEditFieldController.text]);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  

@@ -10,6 +10,7 @@ import 'package:partyboard_client/ICP/avatar_nft.dart';
 import 'package:partyboard_client/ICP/nais.dart';
 import 'package:partyboard_client/model/room.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import '../constant.dart';
 import 'club.dart';
 
@@ -33,8 +34,8 @@ class User with ChangeNotifier {
     return User(lifeId);
   }
 
-  void retrieveAvatarBytes(Identity ident){
-    getAvatarBytes(ident).then((value){
+  void retrieveAvatarBytes(Identity ident, { bool other = true }){
+    getAvatarBytes(ident, other).then((value){
       avatarBytes = value;
       notifyListeners();
     });
@@ -59,6 +60,13 @@ class User with ChangeNotifier {
     });
   }
 
+  void retrieveIntro(Identity ident){
+    myName(ident).then((value){
+      name = value;
+      notifyListeners();
+    });
+  }
+
   Uint8List getAvatar(){
     return this.avatarBytes ?? Uint8List(0);
   }
@@ -67,41 +75,51 @@ class User with ChangeNotifier {
     return name ?? "";
   }
 
-  Future<Uint8List> getAvatarBytes(Identity ident) async{
-
-    if (_anderson == null){
-      _anderson = NaisAgentFactory.create(
-            canisterId: digitalLifeId.toText(),
-            url: replicaUrl,
-            idl: andersonIdl,
-            identity: ident,
-      ).hook(Anderson());
-    }
-    HashMap nftinfo = await _anderson!.myAvatar();
-    String nftIdx = nftinfo["id"];
-    String nftSrc = nftinfo["src"];
-
+  Future<Uint8List> getAvatarBytes(Identity ident, bool other) async{
     var prefs = await SharedPreferences.getInstance();
-    String? avatarCanisterId = prefs.getString(avatarPrefsKey);
-    if (avatarCanisterId == null || avatarCanisterId.isEmpty) {
-      var nais = NaisAgentFactory.create(
-            canisterId: naisCanisterId,
-            url: replicaUrl,
-            idl: naisIdl,
-            identity: ident,
-      ).hook(Nais());
-      var hi = await nais.hi();
-      avatarCanisterId = hi.split(';').elementAt(hi.split(';').length - 2).trim();
-      prefs.setString(avatarPrefsKey, avatarCanisterId);
+    var nftIdx = prefs.getString(avatarIdxPrefsKey);
+    var nftSrc = prefs.getString(avatarSrcPrefsKey);
+
+    if (nftIdx == null || other){
+      if (_anderson == null){
+        _anderson = NaisAgentFactory.create(
+              canisterId: digitalLifeId.toText(),
+              url: replicaUrl,
+              idl: andersonIdl,
+              identity: ident,
+        ).hook(Anderson());
+      }
+      HashMap nftinfo = await _anderson!.myAvatar();
+      nftIdx = nftinfo["id"];
+      nftSrc = nftinfo["src"];
     }
-    var nft = NaisAgentFactory.create(
-          canisterId: avatarCanisterId.trim(),
-          url: replicaUrl,
-          idl: nftIdl,
-          identity: ident,
-    ).hook(NFTCanister());
-    var payload = await nft.tokenByIndex(nftIdx);
-    return payload;
+    if (nftSrc == "LOCAL" && nftIdx != null){
+      var aBytes = await rootBundle.load(nftIdx);
+      return aBytes.buffer.asUint8List();
+    }
+    if (nftSrc == "DFINITY" && nftIdx != null){
+      String? avatarCanisterId = prefs.getString(avatarPrefsKey);
+      if (avatarCanisterId == null || avatarCanisterId.isEmpty) {
+        var nais = NaisAgentFactory.create(
+              canisterId: naisCanisterId,
+              url: replicaUrl,
+              idl: naisIdl,
+              identity: ident,
+        ).hook(Nais());
+        var hi = await nais.hi();
+        avatarCanisterId = hi.split(';').elementAt(hi.split(';').length - 2).trim();
+        prefs.setString(avatarPrefsKey, avatarCanisterId);
+      }
+      var nft = NaisAgentFactory.create(
+            canisterId: avatarCanisterId.trim(),
+            url: replicaUrl,
+            idl: nftIdl,
+            identity: ident,
+      ).hook(NFTCanister());
+      var payload = await nft.tokenByIndex(nftIdx);
+      return payload;
+    }
+    throw Exception("no avatar found");
   }
 
   void getRoomUserProfile(List<Room> rooms, Identity ident){
@@ -146,7 +164,7 @@ class User with ChangeNotifier {
     return [userClubs, userRooms];
   }
 
-  Future<void> openRoom(Identity ident) async{
+  Future<void> openRoom(Identity ident, String title, String desc) async{
     if (_anderson == null){
       _anderson = NaisAgentFactory.create(
             canisterId: digitalLifeId.toText(),
@@ -155,7 +173,19 @@ class User with ChangeNotifier {
             identity: ident,
       ).hook(Anderson());
     }
-    await _anderson!.openRoom("anonymous room");
+    await _anderson!.openRoom(title, cover: desc);
+  }
+
+  Future<void> follow(Identity ident, Principal followed) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    await _anderson!.follow(followed);
   }
 
   Future<String> myName(Identity? ident) async{
@@ -168,6 +198,30 @@ class User with ChangeNotifier {
       ).hook(Anderson());
     }
     return await _anderson!.myName();
+  }
+
+  Future<String> about(Identity? ident) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    return await _anderson!.about();
+  }
+
+  Future<void> editAbout(Identity? ident, String intro) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    await _anderson!.editAbout(intro);
   }
 
   Future<HashMap<String, List>> myFollows(Identity? ident) async{

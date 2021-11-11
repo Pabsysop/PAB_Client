@@ -152,7 +152,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
         var user = User(Principal.fromText(uid as String));
         listenFor(user, _audiens);
         user.retrieveName(_identity);
-        user.retrieveAvatarBytes(_identity);
+        user.retrieveAvatarBytes(_identity, other: false);
       },
       leaveChannel: (stats) {
         setState(() {
@@ -165,7 +165,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
         var user = User(Principal.fromText(uid as String));
         listenFor(user, _audiens);
         user.retrieveName(_identity);
-        user.retrieveAvatarBytes(_identity);
+        user.retrieveAvatarBytes(_identity, other: false);
       },
     ));
   }

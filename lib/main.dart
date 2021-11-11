@@ -160,8 +160,8 @@ class StartPage extends StatelessWidget {
                       ),
                       onPressed: () async {
                         final SharedPreferences prefs = await SharedPreferences.getInstance();
-                        var lifeId = prefs.getString("lifeCanisterID");
-                        var avatar = prefs.getString("avatarNFT");
+                        var lifeId = prefs.getString(lifePrefsKey);
+                        var avatar = prefs.getString(avatarIdxPrefsKey);
                         if (lifeId == null) {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -179,7 +179,7 @@ class StartPage extends StatelessWidget {
                           );
                         }
                       },
-                      child: Text('成为PAB元宇宙公民 ->'),
+                      child: Text('Go PAB Metaverse ->'),
                     )
                   ],
                 )),

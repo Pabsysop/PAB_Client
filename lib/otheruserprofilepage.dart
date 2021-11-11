@@ -36,7 +36,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> with Change
     getUserEnv();
 
     widget.reset.addListener(() {
-      widget.userProfile.getAvatarBytes(_identity).then((value){
+      widget.userProfile.getAvatarBytes(_identity, true).then((value){
         setState(() {
           _avatarBytes = value;
         });
@@ -161,8 +161,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> with Change
                               builder: (context) => FollowingPage(
                                   widget.userProfile.following,
                                   widget.userProfile.followingClub,
-                                  userAvatarBytes,
-                                  usersName
                               )
                             ),
                           );

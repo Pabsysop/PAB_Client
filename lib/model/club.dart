@@ -36,11 +36,10 @@ class Club {
 
     List<Room> rooms = [];
     for (var r in res[1]) {
-        Room room = Room(r["id"], r["title"], r["owner"], boardId);
+        Room room = Room(r["id"], r["title"], r["cover"], r["owner"], boardId);
         room.moderators.addAll(r["moderators"]);
         room.speakers.addAll(r["speakers"]);
         room.audiens.addAll(r["audiens"]);
-        room.cover = this.cover;
         rooms.add(room);
     }
 
@@ -59,7 +58,7 @@ class Club {
     return await _boardClient!.joinRoom(roomId);
   }
 
-    Future<void> leaveRoom(Identity? ident, String roomId) async {
+  Future<void> leaveRoom(Identity? ident, String roomId) async {
     if (_boardClient == null){
       _boardClient = NaisAgentFactory.create(
             canisterId: boardId.toText(),
@@ -69,6 +68,30 @@ class Club {
       ).hook(Board());
     }
     await _boardClient!.leaveRoom(roomId);
+  }
+
+  Future<void> deleteRoom(Identity? ident, String roomId) async {
+    if (_boardClient == null){
+      _boardClient = NaisAgentFactory.create(
+            canisterId: boardId.toText(),
+            url: replicaUrl,
+            idl: boardIdl,
+            identity: ident,
+      ).hook(Board());
+    }
+    await _boardClient!.deleteRoom(roomId);
+  }
+
+  Future<String> editRoom(Identity? ident, String roomId, String title, String desc) async {
+    if (_boardClient == null){
+      _boardClient = NaisAgentFactory.create(
+            canisterId: boardId.toText(),
+            url: replicaUrl,
+            idl: boardIdl,
+            identity: ident,
+      ).hook(Board());
+    }
+    return await _boardClient!.editRoom(title, desc, roomId);
   }
 
   setFollowers(List<User> followers) {

@@ -6,6 +6,8 @@ class BoardMethod {
   static const hi = "Hi";
   static const joinRoom = "JoinRoom";
   static const leaveRoom = "LeaveRoom";
+  static const editRoom = "EditRoom";
+  static const deleteRoom = "DeleteRoom";
 }
 
  Map<String, dynamic> roomType = 
@@ -67,4 +69,25 @@ class Board extends ActorHook {
       rethrow;
     }
   }
+
+  Future<void> deleteRoom(String roomId) async {
+    try {
+      await actor.getFunc(BoardMethod.deleteRoom)!([roomId]);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<String> editRoom(String title, String desc, String roomId) async {
+    try {
+      var res = await actor.getFunc(BoardMethod.editRoom)!([title, desc, roomId]);
+      if (res != null) {
+        return res;
+      }
+      throw "apply failed due to $res";
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
 }
