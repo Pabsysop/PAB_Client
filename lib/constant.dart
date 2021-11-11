@@ -13,6 +13,7 @@ const lifePrefsKey = "lifeCanisterID";
 const avatarPrefsKey = "avatarCanisterId";
 const pkeyPrefsKey = "pKey";
 const avatarIdxPrefsKey = "avatarNftIdx";
+const avatarSrcPrefsKey = "avatarSrc";
 const defaultAvatar = "assets/images/404.png";
 
 // const buttonTextColor = Color.fromRGBO(81, 120, 164, 1);

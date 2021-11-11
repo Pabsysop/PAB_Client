@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 import 'package:agent_dart/agent_dart.dart';
 import 'agent_factory.dart';
 
@@ -9,6 +10,8 @@ class AndersonMethod {
   static const myAvatar = "LookLike";
   static const upAvatar = "Makeup";
   static const myName = "WhatsYourName";
+  static const about = "About";
+  static const editAbout = "Record";
   static const myFollows = "Follows";
   static const like = "Like";
   static const follow = "Follow";
@@ -23,6 +26,8 @@ final andersonIdl = IDL.Service({
   AndersonMethod.upAvatar: IDL.Func([IDL.Text, IDL.Variant({"DFINITY": IDL.Null,"LOCAL": IDL.Null})], [], ['update']),
   AndersonMethod.myFollows: IDL.Func([], [IDL.Vec(IDL.Tuple([IDL.Principal, IDL.Nat64])), IDL.Vec(IDL.Tuple([IDL.Principal, IDL.Nat64]))], ['query']),
   AndersonMethod.like: IDL.Func([], [], ['update']),
+  AndersonMethod.about: IDL.Func([], [], ['query']),
+  AndersonMethod.editAbout: IDL.Func([IDL.Vec(IDL.Nat8)], [], ['update']),
   AndersonMethod.follow: IDL.Func([IDL.Principal], [], ['update']),
 });
 
@@ -94,6 +99,28 @@ class Anderson extends ActorHook {
     }
   }
 
+  Future<String> about() async {
+    try {
+      var res = await actor.getFunc(AndersonMethod.about)!([]);
+      if (res != null) {
+        return res;
+      }
+      throw "apply failed due to $res";
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> editAbout(String text) async {
+    try {
+      var intro = {"content_type": "intro", "content": text.runes.toList()};
+      var bytes = jsonEncode(intro).codeUnits;
+      await actor.getFunc(AndersonMethod.editAbout)!([bytes]);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> upAvatar(String idx, String src) async {
     try {
       await actor.getFunc(AndersonMethod.upAvatar)!([idx,{src: null}]);
@@ -131,11 +158,7 @@ class Anderson extends ActorHook {
 
   Future<void> follow(Principal followed) async {
     try {
-      var res = await actor.getFunc(AndersonMethod.follow)!([followed]);
-      if (res != null) {
-        return;
-      }
-      throw "apply failed due to $res";
+      await actor.getFunc(AndersonMethod.follow)!([followed]);
     } catch (e) {
       rethrow;
     }

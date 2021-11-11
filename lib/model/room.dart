@@ -8,9 +8,9 @@ import 'package:partyboard_client/model/user.dart';
 class Room {
   final String id;
   final String title;
+  final String cover;
   final Principal owner;
   final Principal clubId;
-  String? cover;
   List<Principal> allows = [];
   List<Principal> moderators = [];
   List<Principal> speakers = [];
@@ -21,6 +21,6 @@ class Room {
   List<User> audiensUsers = [];
   num fee = 0.0;
 
-  Room(this.id, this.title, this.owner, this.clubId);
+  Room(this.id, this.title, this.cover, this.owner, this.clubId);
 
 }

@@ -16,10 +16,8 @@ import 'otheruserprofilepage.dart';
 class FollowingPage extends StatefulWidget {
   final List<User> users;
   final List<Club> clubs;
-  final HashMap<String, Uint8List> userAvatarBytes;
-  final HashMap<String, String> usersName;
 
-  const FollowingPage(this.users, this.clubs, this.userAvatarBytes, this.usersName, {Key? key}) : super(key: key);
+  const FollowingPage(this.users, this.clubs, {Key? key}) : super(key: key);
 
   @override
   _FollowingState createState() => _FollowingState();

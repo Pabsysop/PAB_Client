@@ -11,8 +11,6 @@ class RoomWidget extends StatefulWidget {
   final String clubName;
   final Identity _identity;
 
-  ValueNotifier reset = ValueNotifier(false);
-
   RoomWidget(this.room, this.clubName, this._identity, {Key? key}) : super(key: key);
 
   @override
@@ -66,6 +64,10 @@ class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
             ),
             SizedBox(
               height: 10,
+            ),
+            Text(
+              widget.room.cover,
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,

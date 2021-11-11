@@ -105,6 +105,9 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _avatarDesc = "NFT Avatar #" + avatarIdx;
       });
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString(avatarIdxPrefsKey, avatarIdx);
+      prefs.setString(avatarSrcPrefsKey, "DFINITY");
       pop.dismiss();
   }
 
@@ -173,6 +176,9 @@ class _LoginPageState extends State<LoginPage> {
                             });
                             setImageBytes();
                             await upAvatar(_defaultAvatar, "LOCAL");
+                            final SharedPreferences prefs = await SharedPreferences.getInstance();
+                            prefs.setString(avatarIdxPrefsKey, _defaultAvatar);
+                            prefs.setString(avatarSrcPrefsKey, "LOCAL");
                           }
                         }
                       ),

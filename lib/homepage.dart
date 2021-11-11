@@ -60,7 +60,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
 
       getRooms();
 
-      _myDigitalLife.getAvatarBytes(_identity).then((value){
+      _myDigitalLife.getAvatarBytes(_identity, false).then((value){
         setState(() {
           _avatarBytes = value;
         });
@@ -137,6 +137,9 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
             onRefresh: () {
               return Future(() {
                 Future.delayed(Duration(seconds: 4));
+                setState(() {
+                  _rooms.clear();
+                });
                 getRooms();
               });
             },
@@ -431,7 +434,8 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
               var pop = showProgress(context, "openning room");
               var user = await User.newUser(null);
               var ident = await Crypto.getIdentity();
-              await user.openRoom(ident);
+              var txt = await roomEditDialog(context) as List<String>;
+              await user.openRoom(ident, txt[0], txt[1]);
               pop.dismiss();
               Navigator.pop(context);
             },
