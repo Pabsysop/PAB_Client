@@ -1,2 +1,2 @@
 # PAB Client
-client code use flutter.
+client code use flutter with agent_dart support.
