@@ -313,7 +313,9 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
             width: 5,
           ),
           InkWell(
-            onTap: () {},
+            onTap: () async {
+              await _engine.setClientRole(ClientRole.Broadcaster);
+            },
             child: Container(
               padding: EdgeInsets.all(8),
               child: Icon(CupertinoIcons.hand_raised),
