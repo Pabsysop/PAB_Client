@@ -1,4 +1,5 @@
 import 'package:agent_dart/agent_dart.dart';
+import 'package:partyboard_client/model/club.dart';
 import 'package:partyboard_client/model/room.dart';
 import 'package:partyboard_client/model/user.dart';
 import 'package:partyboard_client/widgets/memory_image_widget.dart';
@@ -8,10 +9,10 @@ import 'package:flutter/material.dart';
 // ignore: must_be_immutable
 class RoomWidget extends StatefulWidget {
   final Room room;
-  final String clubName;
+  final Club club;
   final Identity _identity;
 
-  RoomWidget(this.room, this.clubName, this._identity, {Key? key}) : super(key: key);
+  RoomWidget(this.room, this.club, this._identity, {Key? key}) : super(key: key);
 
   @override
   _RoomWidgetState createState() => _RoomWidgetState();
@@ -20,6 +21,7 @@ class RoomWidget extends StatefulWidget {
 class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
   List<User> _audiens = [];
   List<User> _speakers = [];
+  String _boardTitle = "";
 
 
   void listenFor(User user, List<User> belongTo){
@@ -42,7 +44,13 @@ class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
       listenFor(user, _audiens);
       user.retrieveName(widget._identity);
     }
-
+    User.newUser(widget.room.owner).then((user){
+      user.myName(widget._identity).then((name){
+        setState(() {
+          _boardTitle = name + '\'s Board';
+        });
+      });
+    });
   }
 
   @override
@@ -54,7 +62,7 @@ class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.clubName + " 🏡"),
+            Text(_boardTitle + " 🏡"),
             SizedBox(
               height: 5,
             ),

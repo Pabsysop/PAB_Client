@@ -49,6 +49,15 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
     });
   }
 
+  Club getClubByID(Principal clubId){
+    for (var club in _clubs) {
+      if(club.boardId == clubId){
+        return club;
+      }
+    }
+    throw("not find club");
+  }
+
   @override
   void initState(){
     super.initState();
@@ -66,15 +75,6 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
         });
       });
     });
-  }
-
-  String getClubnameById(Principal clubId){
-    for (var club in _clubs) {
-      if (club.boardId == clubId) {
-        return club.title ?? "";
-      }
-    }
-    return "";
   }
 
   void getUserEnv() {
@@ -151,11 +151,11 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (c) => ConversationRoom(r, getClubnameById(r.clubId))
+                            builder: (c) => ConversationRoom(r, getClubByID(r.clubId))
                           )
                         );
                       },
-                      child: RoomWidget(r, getClubnameById(r.clubId), _identity)
+                      child: RoomWidget(r, getClubByID(r.clubId), _identity)
                     )
                   ),
                 ],

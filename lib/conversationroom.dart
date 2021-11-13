@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:crypto/crypto.dart';
-import 'constant.dart';
+import 'model/club.dart';
 import 'model/crypto.dart';
 import 'model/user.dart';
 
@@ -20,12 +20,12 @@ const appId = "c2a463d954a8439196fffbbae156b8f1";
 
 // ignore: must_be_immutable
 class ConversationRoom extends StatefulWidget {
-  final Room inRoom;
-  final String clubName;
+  final Room room;
+  final Club club;
 
   ValueNotifier reset = ValueNotifier(false);
 
-  ConversationRoom(this.inRoom, this.clubName, {Key? key}) : super(key: key);
+  ConversationRoom(this.room, this.club, {Key? key}) : super(key: key);
 
   @override
   _ConversationRoomState createState() => _ConversationRoomState();
@@ -33,19 +33,26 @@ class ConversationRoom extends StatefulWidget {
 
 class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier {
   late RtcEngine _engine;
-  late Room room;
   late Identity _identity;
   late User _myDigitalLife;
+  late RoomUser _owner;
   List<RoomUser> _users = [];
   List<RoomUser> _audiens = [];
   List<RoomUser> _speakers = [];
-  late RoomUser _owner;
+  String _appBarTitle = "";
+  String _boardTitle = "";
+  String _role = "subscriber";
 
   void listenFor(User user, List<RoomUser> belongTo){
     var ru = RoomUser(user, user.digitalLifeId.toText());
     user.addListener(() {
       setState(() {
-        belongTo.add(ru);
+        if(user.name != null && user.avatarBytes != null){
+          belongTo.firstWhere(
+            (u) => u.user.digitalLifeId == user.digitalLifeId,
+            orElse: (){belongTo.add(ru);return ru;}
+          );
+        }
       });
     });
   }
@@ -54,31 +61,31 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
   void initState() {
     super.initState();
 
-    room = widget.inRoom;
-
-    _owner = RoomUser(User(room.owner), room.owner.toText());
-
     widget.reset.addListener(() {
       debugPrint("prefs got ok");
 
-      for (var user in room.speakersUsers) {
+      for (var user in widget.room.speakersUsers) {
         listenFor(user, _speakers);
         user.retrieveAvatarBytes(_identity);
         user.retrieveName(_identity);
       }
-      for (var user in room.audiensUsers) {
+      for (var user in widget.room.audiensUsers) {
         listenFor(user, _audiens);
         user.retrieveAvatarBytes(_identity);
         user.retrieveName(_identity);
       }
 
-      var owner = RoomUser(User(room.owner), room.owner.toText());
-      owner.user.addListener(() {
+      var owner = RoomUser(User(widget.room.owner), widget.room.owner.toText());
+      owner.user.myName(_identity).then((name){
+        owner.user.name = name;
+        _owner = owner;
         setState(() {
-          _owner = owner;
+          _boardTitle = widget.room.title + " - " + name;
+          _appBarTitle = name + '\'s Board';
+          listenFor(_owner.user, _speakers);
+          _owner.user.retrieveAvatarBytes(_identity);
         });
       });
-      owner.user.retrieveName(_identity);
 
       initialize();
 
@@ -87,15 +94,6 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     getUserEnv();
 
   }
-
- @override
- void dispose() {
-   super.dispose();
-
-   _users.clear();
-   _engine.leaveChannel();
-   _engine.destroy();
- }
 
   void getUserEnv() {
     Crypto.getIdentity().then((ident){
@@ -116,27 +114,24 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     // retrieve permissions
     await [Permission.microphone, Permission.camera].request();
 
+    var channelName = sha256.convert(utf8.encode(widget.room.id+widget.room.clubId.toText())).toString();
     await _initAgoraRtcEngine();
-
     _engine.registerLocalUserAccount(appId, _myDigitalLife.digitalLifeId.toText());
-
     _addAgoraEventHandlers();
-
-    var channelName = sha256.convert(utf8.encode(room.id+room.clubId.toText())).toString();
-
-    var token = await AgoraRTMToken.fetchAlbum(_myDigitalLife.digitalLifeId.toText());
-
-    await _engine.joinChannelWithUserAccount(token.rtmToken, channelName, _myDigitalLife.digitalLifeId.toText());
+    var token = await AgoraToken.fetchRTCToken(_myDigitalLife.digitalLifeId.toText(), channelName, _role);
+    await _engine.joinChannelWithUserAccount(token.rtcToken, channelName, _myDigitalLife.digitalLifeId.toText());
   }
   
   Future<void> _initAgoraRtcEngine() async {
     _engine = await RtcEngine.create(appId);
     await _engine.enableAudio();
-    if (_myDigitalLife.digitalLifeId == room.owner){
-      await _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
+    await _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
+    if (_myDigitalLife.digitalLifeId == widget.room.owner){
       await _engine.setClientRole(ClientRole.Broadcaster);
-    } else if(room.speakers.contains(_myDigitalLife.digitalLifeId)){
+      _role = "publisher";
+    } else if(widget.room.speakers.contains(_myDigitalLife.digitalLifeId)){
       await _engine.setClientRole(ClientRole.Broadcaster);
+      _role = "publisher";
     }else{
       await _engine.setClientRole(ClientRole.Audience);
     }
@@ -149,23 +144,24 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       },
       joinChannelSuccess: (channel, uid, elapsed) {
         print('onJoinChannel: $channel, uid: $uid');
-        var user = User(Principal.fromText(uid as String));
-        listenFor(user, _audiens);
-        user.retrieveName(_identity);
-        user.retrieveAvatarBytes(_identity, other: false);
+        _engine.getUserInfoByUid(uid).then((ua){
+          if( ua.userAccount  != widget.room.owner.toText()){
+            var user = User(Principal.fromText(ua.userAccount));
+            user.myName(_identity).then((name){
+              user.name = name;
+              listenFor(user, _audiens);
+              user.retrieveAvatarBytes(_identity, other: false);
+            });
+          }
+        });
       },
       leaveChannel: (stats) {
         setState(() {
           print('onLeaveChannel');
-          _users.clear();
         });
       },
       userJoined: (uid, elapsed) {
         print('userJoined: $uid');
-        var user = User(Principal.fromText(uid as String));
-        listenFor(user, _audiens);
-        user.retrieveName(_identity);
-        user.retrieveAvatarBytes(_identity, other: false);
       },
     ));
   }
@@ -179,7 +175,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
             onPressed: () => {Navigator.pop(context)},
             style: TextButton.styleFrom(primary: Colors.black),
             icon: Icon(CupertinoIcons.chevron_down),
-            label: Text(_owner.user.getName())),
+            label: Text(_appBarTitle)),
         ),
         actions: [
           IconButton(
@@ -208,7 +204,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(widget.clubName.toUpperCase() + ' 🏡',
+                      Text(_boardTitle + ' 🏡',
                           style: Theme.of(context)
                               .textTheme
                               .headline6!
@@ -218,11 +214,6 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                           onPressed: () => {},
                           icon: Icon(CupertinoIcons.ellipsis))
                     ],
-                  ),
-                  Text(
-                    room.title,
-                    style: Theme.of(context).textTheme.bodyText1!.copyWith(
-                        fontSize: bodyFontSize, fontWeight: FontWeight.bold),
                   )
                 ],
               ),
@@ -286,7 +277,11 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       child: Row(
         children: [
           InkWell(
-            onTap: () {},
+            onTap: () {
+              _engine.leaveChannel();
+              _engine.destroy();
+              Navigator.of(context).pop();
+            },
             child: Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(

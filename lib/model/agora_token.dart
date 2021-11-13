@@ -1,31 +1,40 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-class AgoraRTMToken {
-  final String rtmToken;
+class AgoraToken {
+  final String rtcToken;
 
-  AgoraRTMToken({
-    required this.rtmToken,
+  AgoraToken({
+    required this.rtcToken,
   });
 
-  factory AgoraRTMToken.fromJson(Map<String, dynamic> json) {
-    return AgoraRTMToken(
-      rtmToken: json['rtmToken'],
+  factory AgoraToken.fromJson(Map<String, dynamic> json) {
+    return AgoraToken(
+      rtcToken: json['rtcToken'],
     );
   }
 
-  static Future<AgoraRTMToken> fetchAlbum(String uid) async {
+  static Future<AgoraToken> fetchRTMToken(String uid) async {
     final response = await http
     .get(Uri.parse('http://partyboard.org:8080/rtm/'+uid));
 
     if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      return AgoraRTMToken.fromJson(jsonDecode(response.body));
+      return AgoraToken.fromJson(jsonDecode(response.body));
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      throw Exception('Failed to load album');
+      throw Exception('Failed to get token');
     }
   }
+
+  // rtc/:channelName/:role/:tokentype/:uid/
+  static Future<AgoraToken> fetchRTCToken(String uid, String channel, String role) async {
+    final response = await http
+    .get(Uri.parse('http://partyboard.org:8080/rtc/'+channel+'/'+role+'/userAccount/'+uid));
+
+    if (response.statusCode == 200) {
+      return AgoraToken.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to get token');
+    }
+  }
+
 }
