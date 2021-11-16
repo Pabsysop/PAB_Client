@@ -42,6 +42,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
   String _appBarTitle = "";
   String _boardTitle = "";
   String _role = "subscriber";
+  bool _isSpeaker = false;
 
   void listenFor(User user, List<RoomUser> belongTo){
     var ru = RoomUser(user, user.digitalLifeId.toText());
@@ -304,7 +305,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
               child: Icon(CupertinoIcons.hand_thumbsup),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey[200],
+                // color: Colors.grey[200],
               ),
             ),
             borderRadius: BorderRadius.circular(30),
@@ -314,14 +315,21 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
           ),
           InkWell(
             onTap: () async {
-              await _engine.setClientRole(ClientRole.Broadcaster);
+              if( _isSpeaker ){
+                await _engine.setClientRole(ClientRole.Audience);
+              }else{
+                await _engine.setClientRole(ClientRole.Broadcaster);
+              }
+              setState(() {
+                _isSpeaker = !_isSpeaker;
+              });
             },
             child: Container(
               padding: EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.hand_raised),
+              child: _isSpeaker ? Icon(CupertinoIcons.speaker) : Icon(CupertinoIcons.hand_raised),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey[200],
+                // color: Colors.grey[200],
               ),
             ),
             borderRadius: BorderRadius.circular(30),

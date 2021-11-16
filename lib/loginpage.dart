@@ -100,6 +100,7 @@ class _LoginPageState extends State<LoginPage> {
       ).hook(Nais());
 
       var pop = showProgress(context, "upload nft data");
+      
       var avatarIdx = await nais.makeAvatarNFT(contents);
       await upAvatar(avatarIdx, "DFINITY");
       setState(() {
@@ -108,6 +109,7 @@ class _LoginPageState extends State<LoginPage> {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString(avatarIdxPrefsKey, avatarIdx);
       prefs.setString(avatarSrcPrefsKey, "DFINITY");
+
       pop.dismiss();
   }
 

@@ -1,11 +1,8 @@
-import 'package:agent_dart/agent_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_hud/flutter_hud.dart';
 
 import 'constant.dart';
-import 'model/club.dart';
-import 'model/room.dart';
 
 PopupHUD showProgress(BuildContext context, String title){
   final popup = PopupHUD(
@@ -83,6 +80,7 @@ Future<dynamic> roomEditDialog(BuildContext context) async {
         return AlertDialog(
           title: Text('please input room title'),
           content:Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
                 TextField(

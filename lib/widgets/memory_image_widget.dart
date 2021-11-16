@@ -11,12 +11,19 @@ class MemoryImageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.all(Radius.circular(size / 2.2)),
-      child: Image.memory(
-        imageBytes,
-        width: size,
-        height: size,
-        fit: BoxFit.fill,
-      ),
+      child: imageBytes.length != 0 ?
+        Image.memory(
+          imageBytes,
+          width: size,
+          height: size,
+          fit: BoxFit.fill,
+        ) : 
+        Image.asset(
+          "assets/images/loading.png",
+          width: size,
+          height: size,
+          fit: BoxFit.fill,
+        ),
     );
   }
 }
