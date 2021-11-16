@@ -496,7 +496,6 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
 
 TextEditingController _textFieldController = TextEditingController();
 Future<void> _inputFollowedDialog(BuildContext context, User me, Identity identity) async {
-    bool isPressed = false;
     return showDialog(
       context: context,
       builder: (context) {
@@ -516,7 +515,7 @@ Future<void> _inputFollowedDialog(BuildContext context, User me, Identity identi
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                var pop = showProgress(context, "upload nft data");
+                var pop = showProgress(context, "following ...");
                 me.follow(identity, Principal.fromText(_textFieldController.text))
                 .then((v){
                   pop.dismiss();

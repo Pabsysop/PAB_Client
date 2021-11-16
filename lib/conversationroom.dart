@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/datas/imagesaddress.dart';
@@ -24,6 +25,7 @@ class ConversationRoom extends StatefulWidget {
   final Club club;
 
   ValueNotifier reset = ValueNotifier(false);
+  ValueNotifier reset2 = ValueNotifier(false);
 
   ConversationRoom(this.room, this.club, {Key? key}) : super(key: key);
 
@@ -75,7 +77,8 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
         user.retrieveAvatarBytes(_identity);
         user.retrieveName(_identity);
       }
-
+    });
+    widget.reset2.addListener(() {
       var owner = RoomUser(User(widget.room.owner), widget.room.owner.toText());
       owner.user.myName(_identity).then((name){
         owner.user.name = name;
@@ -87,13 +90,14 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
           _owner.user.retrieveAvatarBytes(_identity);
         });
       });
-
       initialize();
-
     });
 
     getUserEnv();
-
+    
+    Timer.periodic(Duration(seconds: 15), (Timer timer) {
+        widget.reset.notifyListeners();
+    });
   }
 
   void getUserEnv() {
@@ -107,6 +111,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
           _myDigitalLife = me;
         });
         widget.reset.notifyListeners();
+        widget.reset2.notifyListeners();
       });
     });
   }
@@ -278,9 +283,10 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       child: Row(
         children: [
           InkWell(
-            onTap: () {
+            onTap: () async {
               _engine.leaveChannel();
               _engine.destroy();
+              await _myDigitalLife.leave(_identity, widget.club.boardId, widget.room.id);
               Navigator.of(context).pop();
             },
             child: Container(
@@ -317,8 +323,10 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
             onTap: () async {
               if( _isSpeaker ){
                 await _engine.setClientRole(ClientRole.Audience);
+                await _myDigitalLife.listen(_identity, widget.club.boardId, widget.room.id);
               }else{
                 await _engine.setClientRole(ClientRole.Broadcaster);
+                await _myDigitalLife.speak(_identity, widget.club.boardId, widget.room.id);
               }
               setState(() {
                 _isSpeaker = !_isSpeaker;
