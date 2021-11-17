@@ -33,7 +33,7 @@ final andersonIdl = IDL.Service({
   AndersonMethod.editAbout: IDL.Func([IDL.Vec(IDL.Nat8)], [], ['update']),
   AndersonMethod.follow: IDL.Func([IDL.Principal], [], ['update']),
   AndersonMethod.listen: IDL.Func([IDL.Principal, IDL.Text], [IDL.Text], ['update']),
-  AndersonMethod.speak: IDL.Func([IDL.Principal, IDL.Text], [IDL.Text], ['update']),
+  AndersonMethod.speak: IDL.Func([IDL.Principal, IDL.Text], [], ['update']),
   AndersonMethod.leave: IDL.Func([IDL.Principal, IDL.Text], [], ['update']),
 });
 
@@ -174,13 +174,9 @@ class Anderson extends ActorHook {
     }
   }
 
-  Future<String> speak(Principal board, String room) async {
+  Future<void> speak(Principal board, String room) async {
     try {
-      var res = await actor.getFunc(AndersonMethod.speak)!([board, room]);
-      if (res != null) {
-        return res;
-      }
-      throw "apply failed due to $res";
+      await actor.getFunc(AndersonMethod.speak)!([board, room]);
     } catch (e) {
       rethrow;
     }

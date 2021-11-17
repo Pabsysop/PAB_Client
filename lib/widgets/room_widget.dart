@@ -60,6 +60,7 @@ class _RoomWidgetState extends State<RoomWidget> with ChangeNotifier {
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_boardTitle + " 🏡"),

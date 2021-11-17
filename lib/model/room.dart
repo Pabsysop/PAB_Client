@@ -1,11 +1,12 @@
 import 'package:agent_dart/agent_dart.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:partyboard_client/model/user.dart';
 
     // pub tickets: Vec<Ticket>,
     // pub groups: Vec<Group>,
     // pub messages: Vec<Message>,
 
-class Room {
+class Room  with ChangeNotifier {
   final String id;
   final String title;
   final String cover;

@@ -29,6 +29,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
   List<Club> _clubs = [];
   List<Room> _rooms = [];
   Uint8List _avatarBytes = Uint8List(0);
+  bool waitLoading = true;
 
   void getRooms(){
     _myDigitalLife.loadRoomList(_identity).then((value){
@@ -38,13 +39,20 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
       });
     });
     _myDigitalLife.retrieveFollows(_identity).then((value){
+      if(_myDigitalLife.following.length == 0){
+          setState(() {
+            waitLoading = false;
+          });
+      } 
       for (var user in _myDigitalLife.following) {
         user.loadRoomList(_identity).then((value){
           setState(() {
             _clubs.addAll(value[0]);
             _rooms.addAll(value[1]);
+            waitLoading = false;
           });
-        });
+        })
+        .whenComplete(() => waitLoading = false);
       }
     });
   }
@@ -130,7 +138,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
           ),
         ],
       ),
-      body: _rooms.length == 0 ? Center(child: CircularProgressIndicator()) : Stack(
+      body: _rooms.length == 0 && waitLoading ? Center(child: CircularProgressIndicator()) : Stack(
         children: [
           RefreshIndicator(
             color: Colors.black,
@@ -140,6 +148,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
                 setState(() {
                   _rooms.clear();
                   _myDigitalLife.following.clear();
+                  waitLoading = true;
                 });
                 Future.delayed(Duration(seconds: 5));
                 getRooms();

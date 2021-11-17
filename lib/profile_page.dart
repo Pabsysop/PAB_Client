@@ -278,7 +278,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("nick:" + _myName),
+                        Text(_myName),
                         SizedBox(
                           height: 10,
                         ),
@@ -287,28 +287,23 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                height: 5,
-                              ),
                               Text("likes: 10PAB" ),
                               SizedBox(
-                                height: 5,
+                                height: 10,
                               ),
                               Text("minings: 10PAB"),
                             ]
                           )
                         ),
-                        SizedBox(
-                          height: 10,
-                        ),
                         TextButton(
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero),
                           onPressed: (){
-                            Clipboard.setData(new ClipboardData(text: _myDigitalLife.digitalLifeId.toText())).then((_){
-                              ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text('Code Copied')));
-                            });                            
-                          },
-                          child: Text(_myDigitalLife.digitalLifeId.toText())
+                              Clipboard.setData(new ClipboardData(text: _myDigitalLife.digitalLifeId.toText())).then((_){
+                                ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(content: Text('Code Copied')));
+                              });                            
+                            },
+                            child: Text(_myDigitalLife.digitalLifeId.toText().replaceRange(7, 15, "..."))
                         ),
                       ]
                     )
@@ -378,7 +373,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                                       )
                                   );
                                 },
-                                child: MemoryImageWidget(_myDigitalLife.avatarBytes??Uint8List(0), 40)
+                                child: MemoryImageWidget(_followers[index].avatarBytes??Uint8List(0), 40)
                             )
                         );
                       },
@@ -467,7 +462,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                     height: 10,
                   ),
                   Container(
-                    height: 300,
+                    height: 200,
                     child: ListView.builder(
                       scrollDirection: Axis.vertical,
                       itemBuilder: (context, index) {
