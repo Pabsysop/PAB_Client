@@ -132,16 +132,29 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       User.newUser(null).then((me) {
         setState(() {
           _myDigitalLife = me;
-          me.listen(ident, currentClub.boardId, currentRoom.id).then((value){
-            currentClub.myMeta(ident).then((rooms){
-              var index = rooms.indexWhere((room) => room.id == currentRoom.id);
-              setState(() {
-                currentRoom.audiens = rooms[index].audiens;
-                currentRoom.speakers = rooms[index].speakers;
+          if (me.digitalLifeId == currentRoom.owner){
+            me.speak(ident, currentClub.boardId, currentRoom.id).then((value){
+              currentClub.myMeta(ident).then((rooms){
+                var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                setState(() {
+                  currentRoom.audiens = rooms[index].audiens;
+                  currentRoom.speakers = rooms[index].speakers;
+                });
+                currentRoom.notifyListeners();
               });
-              currentRoom.notifyListeners();
             });
-          });
+          }else{
+            me.listen(ident, currentClub.boardId, currentRoom.id).then((value){
+              currentClub.myMeta(ident).then((rooms){
+                var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                setState(() {
+                  currentRoom.audiens = rooms[index].audiens;
+                  currentRoom.speakers = rooms[index].speakers;
+                });
+                currentRoom.notifyListeners();
+              });
+            });
+          }
         });
         widget.reset2.notifyListeners();
       });
