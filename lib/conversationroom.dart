@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:agent_dart/agent_dart.dart';
 import 'package:partyboard_client/datas/imagesaddress.dart';
@@ -24,6 +25,7 @@ class ConversationRoom extends StatefulWidget {
   final Club club;
 
   ValueNotifier reset = ValueNotifier(false);
+  ValueNotifier reset2 = ValueNotifier(false);
 
   ConversationRoom(this.room, this.club, {Key? key}) : super(key: key);
 
@@ -42,6 +44,9 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
   String _appBarTitle = "";
   String _boardTitle = "";
   String _role = "subscriber";
+  bool _isSpeaker = false;
+  late Room currentRoom;
+  late Club currentClub;
 
   void listenFor(User user, List<RoomUser> belongTo){
     var ru = RoomUser(user, user.digitalLifeId.toText());
@@ -57,42 +62,63 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     });
   }
 
+  void listenRoomUpdate(Room room){
+    room.addListener(() {
+      room.allowsUsers.clear();
+      room.speakersUsers.clear();
+      _speakers.clear();
+      _audiens.clear();
+      for (var userid in room.speakers) {
+        var user = User(userid);
+        listenFor(user, _speakers);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+        room.speakersUsers.add(user);
+      }
+      for (var userid in room.audiens) {
+        var user = User(userid);
+        listenFor(user, _audiens);
+        user.retrieveAvatarBytes(_identity);
+        user.retrieveName(_identity);
+        room.audiensUsers.add(user);
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
 
-    widget.reset.addListener(() {
-      debugPrint("prefs got ok");
+    currentRoom = widget.room;
+    currentClub = widget.club;
 
-      for (var user in widget.room.speakersUsers) {
-        listenFor(user, _speakers);
-        user.retrieveAvatarBytes(_identity);
-        user.retrieveName(_identity);
-      }
-      for (var user in widget.room.audiensUsers) {
-        listenFor(user, _audiens);
-        user.retrieveAvatarBytes(_identity);
-        user.retrieveName(_identity);
-      }
-
-      var owner = RoomUser(User(widget.room.owner), widget.room.owner.toText());
+    widget.reset2.addListener(() {
+      var owner = RoomUser(User(currentRoom.owner), currentRoom.owner.toText());
       owner.user.myName(_identity).then((name){
         owner.user.name = name;
         _owner = owner;
         setState(() {
-          _boardTitle = widget.room.title + " - " + name;
+          _boardTitle = currentRoom.title + " - " + name;
           _appBarTitle = name + '\'s Board';
           listenFor(_owner.user, _speakers);
           _owner.user.retrieveAvatarBytes(_identity);
         });
       });
-
       initialize();
-
     });
 
     getUserEnv();
-
+    
+    Timer.periodic(Duration(seconds: 40), (Timer timer) {
+      currentClub.myMeta(_identity).then((rooms){
+        var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+        setState(() {
+            currentRoom.audiens = rooms[index].audiens;
+            currentRoom.speakers = rooms[index].speakers;
+        });
+        currentRoom.notifyListeners();
+      });
+    });
   }
 
   void getUserEnv() {
@@ -101,11 +127,36 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
         _identity = ident;
       });
 
+      listenRoomUpdate(currentRoom);
+
       User.newUser(null).then((me) {
         setState(() {
           _myDigitalLife = me;
+          if (me.digitalLifeId == currentRoom.owner){
+            me.speak(ident, currentClub.boardId, currentRoom.id).then((value){
+              currentClub.myMeta(ident).then((rooms){
+                var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                setState(() {
+                  currentRoom.audiens = rooms[index].audiens;
+                  currentRoom.speakers = rooms[index].speakers;
+                });
+                currentRoom.notifyListeners();
+              });
+            });
+          }else{
+            me.listen(ident, currentClub.boardId, currentRoom.id).then((value){
+              currentClub.myMeta(ident).then((rooms){
+                var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                setState(() {
+                  currentRoom.audiens = rooms[index].audiens;
+                  currentRoom.speakers = rooms[index].speakers;
+                });
+                currentRoom.notifyListeners();
+              });
+            });
+          }
         });
-        widget.reset.notifyListeners();
+        widget.reset2.notifyListeners();
       });
     });
   }
@@ -114,7 +165,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     // retrieve permissions
     await [Permission.microphone, Permission.camera].request();
 
-    var channelName = sha256.convert(utf8.encode(widget.room.id+widget.room.clubId.toText())).toString();
+    var channelName = sha256.convert(utf8.encode(currentRoom.id+currentRoom.clubId.toText())).toString();
     await _initAgoraRtcEngine();
     _engine.registerLocalUserAccount(appId, _myDigitalLife.digitalLifeId.toText());
     _addAgoraEventHandlers();
@@ -126,10 +177,10 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
     _engine = await RtcEngine.create(appId);
     await _engine.enableAudio();
     await _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    if (_myDigitalLife.digitalLifeId == widget.room.owner){
+    if (_myDigitalLife.digitalLifeId == currentRoom.owner){
       await _engine.setClientRole(ClientRole.Broadcaster);
       _role = "publisher";
-    } else if(widget.room.speakers.contains(_myDigitalLife.digitalLifeId)){
+    } else if(currentRoom.speakers.contains(_myDigitalLife.digitalLifeId)){
       await _engine.setClientRole(ClientRole.Broadcaster);
       _role = "publisher";
     }else{
@@ -145,7 +196,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       joinChannelSuccess: (channel, uid, elapsed) {
         print('onJoinChannel: $channel, uid: $uid');
         _engine.getUserInfoByUid(uid).then((ua){
-          if( ua.userAccount  != widget.room.owner.toText()){
+          if( ua.userAccount  != currentRoom.owner.toText()){
             var user = User(Principal.fromText(ua.userAccount));
             user.myName(_identity).then((name){
               user.name = name;
@@ -211,8 +262,18 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
                               .copyWith(
                                   fontSize: 15, fontWeight: FontWeight.w400)),
                       IconButton(
-                          onPressed: () => {},
-                          icon: Icon(CupertinoIcons.ellipsis))
+                          onPressed: () => {
+                              currentClub.myMeta(_identity).then((rooms){
+                                var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                                setState(() {
+                                    currentRoom.audiens = rooms[index].audiens;
+                                    currentRoom.speakers = rooms[index].speakers;
+                                });
+                                currentRoom.notifyListeners();
+                              })
+                          },
+                          icon: Icon(CupertinoIcons.refresh)
+                        )
                     ],
                   )
                 ],
@@ -277,9 +338,10 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
       child: Row(
         children: [
           InkWell(
-            onTap: () {
+            onTap: () async {
               _engine.leaveChannel();
               _engine.destroy();
+              await _myDigitalLife.leave(_identity, currentClub.boardId, currentRoom.id);
               Navigator.of(context).pop();
             },
             child: Container(
@@ -304,7 +366,7 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
               child: Icon(CupertinoIcons.hand_thumbsup),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey[200],
+                // color: Colors.grey[200],
               ),
             ),
             borderRadius: BorderRadius.circular(30),
@@ -313,13 +375,42 @@ class _ConversationRoomState extends State<ConversationRoom> with ChangeNotifier
             width: 5,
           ),
           InkWell(
-            onTap: () {},
+            onTap: () async {
+              if( _isSpeaker ){
+                await _engine.setClientRole(ClientRole.Audience);
+                await _myDigitalLife.listen(_identity, currentClub.boardId, currentRoom.id).then((value){
+                  currentClub.myMeta(_identity).then((rooms){
+                    var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                    setState(() {
+                        currentRoom.audiens = rooms[index].audiens;
+                        currentRoom.speakers = rooms[index].speakers;
+                    });
+                    currentRoom.notifyListeners();
+                  });
+               });
+              }else{
+                await _engine.setClientRole(ClientRole.Broadcaster);
+                await _myDigitalLife.speak(_identity, currentClub.boardId, currentRoom.id).then((value){
+                  currentClub.myMeta(_identity).then((rooms){
+                    var index = rooms.indexWhere((room) => room.id == currentRoom.id);
+                    setState(() {
+                        currentRoom.audiens = rooms[index].audiens;
+                        currentRoom.speakers = rooms[index].speakers;
+                    });
+                    currentRoom.notifyListeners();
+                  });
+               });
+              }
+              setState(() {
+                _isSpeaker = !_isSpeaker;
+              });
+            },
             child: Container(
               padding: EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.hand_raised),
+              child: _isSpeaker ? Icon(CupertinoIcons.speaker_1_fill) : Icon(CupertinoIcons.hand_raised),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey[200],
+                // color: Colors.grey[200],
               ),
             ),
             borderRadius: BorderRadius.circular(30),

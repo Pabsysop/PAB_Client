@@ -29,13 +29,13 @@ class _MyRoomWidgetState extends State<MyRoomWidget> with ChangeNotifier {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.clubName + " 🏡"),
-            SizedBox(
-              height: 5,
-            ),
-            Text(
-              widget.room.title,
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Row(children: [
+                Text("🏡"),
+                Text(
+                  widget.room.title,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             SizedBox(
               height: 5,

@@ -15,6 +15,9 @@ class AndersonMethod {
   static const myFollows = "Follows";
   static const like = "Like";
   static const follow = "Follow";
+  static const listen = "Listen";
+  static const speak = "Speak";
+  static const leave = "Leave";
 }
 
 final andersonIdl = IDL.Service({
@@ -26,9 +29,12 @@ final andersonIdl = IDL.Service({
   AndersonMethod.upAvatar: IDL.Func([IDL.Text, IDL.Variant({"DFINITY": IDL.Null,"LOCAL": IDL.Null})], [], ['update']),
   AndersonMethod.myFollows: IDL.Func([], [IDL.Vec(IDL.Tuple([IDL.Principal, IDL.Nat64])), IDL.Vec(IDL.Tuple([IDL.Principal, IDL.Nat64]))], ['query']),
   AndersonMethod.like: IDL.Func([], [], ['update']),
-  AndersonMethod.about: IDL.Func([], [], ['query']),
+  AndersonMethod.about: IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
   AndersonMethod.editAbout: IDL.Func([IDL.Vec(IDL.Nat8)], [], ['update']),
   AndersonMethod.follow: IDL.Func([IDL.Principal], [], ['update']),
+  AndersonMethod.listen: IDL.Func([IDL.Principal, IDL.Text], [IDL.Text], ['update']),
+  AndersonMethod.speak: IDL.Func([IDL.Principal, IDL.Text], [], ['update']),
+  AndersonMethod.leave: IDL.Func([IDL.Principal, IDL.Text], [], ['update']),
 });
 
 class Anderson extends ActorHook {
@@ -151,6 +157,34 @@ class Anderson extends ActorHook {
         return;
       }
       throw "apply failed due to $res";
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<String> listen(Principal board, String room) async {
+    try {
+      var res = await actor.getFunc(AndersonMethod.listen)!([board, room]);
+      if (res != null) {
+        return res;
+      }
+      throw "apply failed due to $res";
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> speak(Principal board, String room) async {
+    try {
+      await actor.getFunc(AndersonMethod.speak)!([board, room]);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> leave(Principal board, String room) async {
+    try {
+      await actor.getFunc(AndersonMethod.leave)!([board, room]);
     } catch (e) {
       rethrow;
     }

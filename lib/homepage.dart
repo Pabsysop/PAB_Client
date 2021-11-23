@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'model/club.dart';
 import 'model/room.dart';
 import 'model/user.dart';
-
+import 'widgets/memory_image_widget.dart';
 
 // ignore: must_be_immutable
 class Homepage extends StatefulWidget {
@@ -29,6 +29,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
   List<Club> _clubs = [];
   List<Room> _rooms = [];
   Uint8List _avatarBytes = Uint8List(0);
+  bool waitLoading = true;
 
   void getRooms(){
     _myDigitalLife.loadRoomList(_identity).then((value){
@@ -38,13 +39,20 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
       });
     });
     _myDigitalLife.retrieveFollows(_identity).then((value){
+      if(_myDigitalLife.following.length == 0){
+          setState(() {
+            waitLoading = false;
+          });
+      } 
       for (var user in _myDigitalLife.following) {
         user.loadRoomList(_identity).then((value){
           setState(() {
             _clubs.addAll(value[0]);
             _rooms.addAll(value[1]);
+            waitLoading = false;
           });
-        });
+        })
+        .whenComplete(() => waitLoading = false);
       }
     });
   }
@@ -75,6 +83,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
         });
       });
     });
+
   }
 
   void getUserEnv() {
@@ -101,11 +110,7 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
         leading: IconButton(
           icon: ClipRRect(
             borderRadius: BorderRadius.all(Radius.circular(50 / 2.2)),
-            child: Image.memory(_avatarBytes,
-              width: 50,
-              height: 50,
-              fit: BoxFit.fill,
-            ),
+            child: MemoryImageWidget(_avatarBytes, 50),
           ),
           onPressed: () {
             Navigator.push(
@@ -117,7 +122,11 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
         actions: [
           IconButton(
             icon: Icon(CupertinoIcons.envelope_open),
-            onPressed: () {},
+            onPressed: () {
+              var pop = showProgress(context, "loading rooms");
+              Future.delayed(Duration(seconds: 15));
+              pop.dismiss();
+            },
           ),
           IconButton(
             icon: Icon(CupertinoIcons.calendar),
@@ -129,17 +138,19 @@ class _HomepageState extends State<Homepage> with ChangeNotifier{
           ),
         ],
       ),
-      body: Stack(
+      body: _rooms.length == 0 && waitLoading ? Center(child: CircularProgressIndicator()) : Stack(
         children: [
           RefreshIndicator(
             color: Colors.black,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             onRefresh: () {
               return Future(() {
-                Future.delayed(Duration(seconds: 4));
                 setState(() {
                   _rooms.clear();
+                  _myDigitalLife.following.clear();
+                  waitLoading = true;
                 });
+                Future.delayed(Duration(seconds: 5));
                 getRooms();
               });
             },
@@ -431,12 +442,14 @@ class _BottomModalSheetState extends State<BottomModalSheet> {
               minimumSize: Size(100, 40), //////// HERE
             ),
             onPressed: () async{
-              var pop = showProgress(context, "openning room");
               var user = await User.newUser(null);
               var ident = await Crypto.getIdentity();
-              var txt = await roomEditDialog(context) as List<String>;
-              await user.openRoom(ident, txt[0], txt[1]);
-              pop.dismiss();
+              var txt = await roomEditDialog(context);
+              if( txt != null){
+                var pop = showProgress(context, "openning room");
+                await user.openRoom(ident, txt[0], txt[1]);
+                pop.dismiss();
+              }
               Navigator.pop(context);
             },
             child: Text(

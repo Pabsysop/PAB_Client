@@ -217,11 +217,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                     children: [
                         ClipRRect(
                           borderRadius: BorderRadius.all(Radius.circular(150 / 2.2)),
-                          child: Image.memory(_avatarBytes,
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.fill,
-                          ),
+                          child: MemoryImageWidget(_avatarBytes,100)
                         ),
                         SizedBox(
                           height: 15,
@@ -282,7 +278,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("nick:" + _myName),
+                        Text(_myName),
                         SizedBox(
                           height: 10,
                         ),
@@ -291,28 +287,23 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                height: 5,
-                              ),
                               Text("likes: 10PAB" ),
                               SizedBox(
-                                height: 5,
+                                height: 10,
                               ),
                               Text("minings: 10PAB"),
                             ]
                           )
                         ),
-                        SizedBox(
-                          height: 10,
-                        ),
                         TextButton(
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero),
                           onPressed: (){
-                            Clipboard.setData(new ClipboardData(text: _myDigitalLife.digitalLifeId.toText())).then((_){
-                              ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text('Code Copied')));
-                            });                            
-                          },
-                          child: Text(_myDigitalLife.digitalLifeId.toText())
+                              Clipboard.setData(new ClipboardData(text: _myDigitalLife.digitalLifeId.toText())).then((_){
+                                ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(content: Text('Code Copied')));
+                              });                            
+                            },
+                            child: Text(_myDigitalLife.digitalLifeId.toText().replaceRange(7, 15, "..."))
                         ),
                       ]
                     )
@@ -382,7 +373,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                                       )
                                   );
                                 },
-                                child: MemoryImageWidget(_myDigitalLife.avatarBytes??Uint8List(0), 40)
+                                child: MemoryImageWidget(_followers[index].avatarBytes??Uint8List(0), 40)
                             )
                         );
                       },
@@ -471,7 +462,7 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
                     height: 10,
                   ),
                   Container(
-                    height: 300,
+                    height: 200,
                     child: ListView.builder(
                       scrollDirection: Axis.vertical,
                       itemBuilder: (context, index) {
@@ -499,7 +490,6 @@ class _ProfilePageState extends State<ProfilePage> with ChangeNotifier{
 }
 
 TextEditingController _textFieldController = TextEditingController();
-
 Future<void> _inputFollowedDialog(BuildContext context, User me, Identity identity) async {
     return showDialog(
       context: context,
@@ -520,7 +510,12 @@ Future<void> _inputFollowedDialog(BuildContext context, User me, Identity identi
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                me.follow(identity, Principal.fromText(_textFieldController.text)).then((v) => Navigator.pop(context));
+                var pop = showProgress(context, "following ...");
+                me.follow(identity, Principal.fromText(_textFieldController.text))
+                .then((v){
+                  pop.dismiss();
+                  Navigator.pop(context);
+                });
               },
             ),
           ],
@@ -567,10 +562,14 @@ Future<void> _editOrDeleteDialog(BuildContext context, Room room, Identity ident
       builder: (context) {
         return AlertDialog(
           title: Text('choose action'),
-          content: TextField(
-            decoration: InputDecoration(hintText: ""),
-          ),
+          content: Text('Edit or Delete a Room'),
           actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
             TextButton(
               child: Text('Delete'),
               onPressed: () {

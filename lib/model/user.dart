@@ -224,6 +224,40 @@ class User with ChangeNotifier {
     await _anderson!.editAbout(intro);
   }
 
+  Future<void> speak(Identity? ident, Principal board, String room) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    await _anderson!.speak(board, room);
+  }
+  Future<void> listen(Identity? ident, Principal board, String room) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    await _anderson!.listen(board, room);
+  }
+  Future<void> leave(Identity? ident, Principal board, String room) async{
+    if (_anderson == null){
+      _anderson = NaisAgentFactory.create(
+            canisterId: digitalLifeId.toText(),
+            url: replicaUrl,
+            idl: andersonIdl,
+            identity: ident,
+      ).hook(Anderson());
+    }
+    await _anderson!.leave(board, room);
+  }
+
   Future<HashMap<String, List>> myFollows(Identity? ident) async{
     if (_anderson == null){
       _anderson = NaisAgentFactory.create(
