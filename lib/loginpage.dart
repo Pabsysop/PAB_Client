@@ -152,11 +152,11 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.all(Radius.circular(size / 2.2)),
-                    child: Image.memory(_avatarBytes,
+                    child: _avatarBytes.length!=0 ? Image.memory(_avatarBytes,
                       width: size,
                       height: size,
                       fit: BoxFit.fill,
-                    ),
+                    ) : SizedBox(),
                   ),
                   SizedBox(
                     height: 15,
