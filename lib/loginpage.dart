@@ -156,7 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                       width: size,
                       height: size,
                       fit: BoxFit.fill,
-                    ) : Text(''),
+                    ) : SizedBox(),
                   ),
                   SizedBox(
                     height: 15,
