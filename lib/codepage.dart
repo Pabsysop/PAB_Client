@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:agent_dart/agent_dart.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:partyboard_client/ICP/agent_factory.dart';
 import 'package:partyboard_client/ICP/nais.dart';
 import 'package:partyboard_client/loginpage.dart';
@@ -15,7 +16,7 @@ final TextEditingController myController = TextEditingController();
 
 class CodePage extends StatelessWidget {
   CodePage({Key? key}) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,21 +54,19 @@ class CodePage extends StatelessWidget {
                     height: 10,
                   ),
                   Container(
-                    child: GridView.count(
-                      crossAxisCount: 4,
-                      shrinkWrap: true,
-                      children: new List<Widget>.generate(16, (index) {
-                        return new GridTile(
-                          child: new Card(
+                      child: GridView.count(
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    children: new List<Widget>.generate(16, (index) {
+                      return new GridTile(
+                        child: new Card(
                             color: Colors.blue.shade200,
                             child: new Center(
                               child: new Text('$index'),
-                            )
-                          ),
-                        );
-                      }),
-                    )
-                  ),
+                            )),
+                      );
+                    }),
+                  )),
                 ],
               ),
               ElevatedButton(
@@ -79,34 +78,7 @@ class CodePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(32.0)),
                   minimumSize: Size(150, 50), //////// HERE
                 ),
-                onPressed: () async {
-                  var popup = showProgress(context, "PartyBoard Citizen Apply");
-                  Uint8List seed = myController.text.substring(0, 64).toU8a();
-                  var _identity = Ed25519KeyIdentity.generate(seed);
-                  popup.setValue(0.2);
-                  popup.setDetailLabel('Progress ${(0.2 * 100).toInt()}%..');
-                  var _nais = NaisAgentFactory.create(
-                                canisterId: naisCanisterId,
-                                url: replicaUrl,
-                                idl: naisIdl,
-                                identity: _identity,
-                          ).hook(Nais());
-                  var lifeId = await _nais.applyCitizen(myController.text);
-
-                  popup.setValue(0.6);
-                  popup.setDetailLabel('Progress ${(0.6 * 100).toInt()}%..');
-                  var pkStr = PemCodec(PemLabel.privateKey).encode(_identity.getKeyPair().secretKey);
-                  final SharedPreferences prefs = await SharedPreferences.getInstance();
-                  prefs.setString(lifePrefsKey, lifeId.toText());
-                  prefs.setString(pkeyPrefsKey, pkStr);
-                  popup.setValue(1.0);
-                  popup.setDetailLabel('Progress ${(1.0 * 100).toInt()}%..');
-
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (c) => Scaffold(body: LoginPage())),
-                  );
-                },
+                onPressed: () => joinClicked(context),
                 child: Text(
                   '->',
                   style: TextStyle(fontSize: buttonFontSize),
@@ -117,5 +89,34 @@ class CodePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void joinClicked(BuildContext context) async {
+    try {
+      var popup = showProgress(context, "PartyBoard Citizen Apply");
+      Uint8List seed = myController.text.substring(0, 64).toU8a();
+      var _identity = Ed25519KeyIdentity.generate(seed);
+      popup.setValue(0.2);
+      popup.setDetailLabel('Progress ${(0.2 * 100).toInt()}%..');
+      var _nais = NaisAgentFactory.create(
+        canisterId: naisCanisterId,
+        url: replicaUrl,
+        idl: naisIdl,
+        identity: _identity,
+      ).hook(Nais());
+      var lifeId = await _nais.applyCitizen(myController.text);
+      popup.setValue(0.6);
+      popup.setDetailLabel('Progress ${(0.6 * 100).toInt()}%..');
+      var pkStr = PemCodec(PemLabel.privateKey)
+          .encode(_identity.getKeyPair().secretKey);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString(lifePrefsKey, lifeId.toText());
+      prefs.setString(pkeyPrefsKey, pkStr);
+      popup.setValue(1.0);
+      popup.setDetailLabel('Progress ${(1.0 * 100).toInt()}%..');
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (c) => Scaffold(body: LoginPage())),
+      );
+    } catch (e) {}
   }
 }
